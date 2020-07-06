@@ -26,9 +26,31 @@ def init_browser_link(link):
 
 
 def parse_courses(driver):
-    """Parses page with Beautiful Soup and returns a dictionary with unique id as keys an (Course Title, Instructor,
+    """Parses page with Beautiful Soup and returns a dictionary with unique id as keys an (Course Title,
     Availability) tuple as value """
-    return {}
+
+    course_list = {}
+    soup = BeautifulSoup(driver.page_source, 'html.parser')
+    table = soup.find('table', {'class': 'rwd-table results'})
+    if table:
+        table_body = table.find('tbody')
+
+        rows = table_body.find_all('tr')
+
+        curr_header = None
+        for row in rows:
+            # rows can only have header or the section information, but not both
+            header = row.find('td', {'class': 'course_header'})
+            unique = row.find('td', {'data-th': 'Unique'})
+            status = row.find('td', {'data-th': 'Status'})
+
+            if header:
+                curr_header = header
+            else:
+                assert not header
+                course_list[unique] = (curr_header, status)
+
+    return course_list
 
 
 def filter_courses(course_list):
@@ -36,10 +58,21 @@ def filter_courses(course_list):
     return course_list
 
 
-def changelist(prev_course_list, curr_course_list):
-    """Get a list of changed courses"""
-    # todo compare with desired course unique id's and see if anything changed from previous refresh?
-    return curr_course_list
+def changelist(p_course_list, c_course_list):
+    """Get a list of changed courses with old and new statuses"""
+    change_list = {}
+
+    for uid, (name, status) in c_course_list.items():
+
+        if uid in p_course_list:
+            (p_name, p_status) = p_course_list[uid]
+            assert p_name == name
+            if p_status != status:
+                change_list[uid] = (name, p_status, status)
+        else:
+            print('lost {} ({}) from refreshed course list'.format(name, uid))
+
+    return change_list
 
 
 def click_next(driver):
@@ -86,7 +119,9 @@ if __name__ == '__main__':
         if prev_course_list:
             changed_courses = changelist(prev_course_list, curr_course_list)
             if len(changed_courses) > 0:
-                pass  # todo emit a message saying courses changed
+
+                for uid, (name, prev_status, new_status) in changed_courses:
+                    pass  # todo send notification to user with link to register immediately if open?
 
         prev_course_list = curr_course_list
         time.sleep(sleep_time)
