@@ -1,3 +1,5 @@
+import slack
+
 statuses = [
     'open',
     'open; reserved',
@@ -13,7 +15,6 @@ def categorize_classes(classes):
     opened = {}
 
     for uid, (name, prev_state, new_state) in classes.items():
-
         prev_severity = statuses.index(prev_state)
         new_severity = statuses.index(new_state)
 
@@ -28,10 +29,10 @@ class NotificationEmitter:
     def __init__(self):
         pass
 
-    def emit(self, closed_classes, opened_classes):
+    def emit(self, closed_classes: dict, opened_classes: dict):
         pass
 
-    def emit_msg(self, classes):
+    def emit_msg(self, classes: dict):
         if len(classes) == 0:
             return
         else:
@@ -44,7 +45,7 @@ class ConsoleEmitter(NotificationEmitter):
     def __init__(self):
         super().__init__()
 
-    def emit(self, closed_classes, opened_classes):
+    def emit(self, closed_classes: dict, opened_classes: dict):
 
         if len(closed_classes) > 0:
             print('Here are the classes that closed up')
@@ -56,10 +57,39 @@ class ConsoleEmitter(NotificationEmitter):
                 print('{} changed from {} to {}!'.format(name, prev, new))
 
 
-class TwillioMsgEmitter(NotificationEmitter):
+def build_msg(closed_classes: dict, opened_classes: dict):
+    msg = ''
 
-    def __init__(self):
+    if len(closed_classes) > 0:
+        msg += 'These classes closed up\n'
+
+        for uid, (name, old_status, new_status) in closed_classes.items():
+            msg += '- {}: {} ({} -> {})\n'.format(uid, name, old_status, new_status)
+        msg += '\n'
+
+    if len(opened_classes) > 0:
+        msg += 'These classes opened up\n'
+
+        for uid, (name, old_status, new_status) in opened_classes.items():
+            msg += '- {}: {} ({} -> {})\n'.format(uid, name, old_status, new_status)
+
+        msg += 'register for class here {}'.format('https://utdirect.utexas.edu/registration/chooseSemester.WBX')
+
+    # add link to registration if possible, formatted as
+    # https://utdirect.utexas.edu/registration/registration.WBX?s_ccyys=
+    # <20209 | semester code>&s_af_unique=<00495 | course unique id>
+    return msg
+
+
+class SlackEmitter(NotificationEmitter):
+
+    def __init__(self, token: str, channel: str):
         super().__init__()
+        self.client = slack.WebClient(token=token)
+        self.channel = channel
 
-    def emit(self, closed_classes, opened_classes):
-        pass
+    def emit(self, closed_classes: dict, opened_classes: dict):
+        if len(closed_classes) > 0 or len(opened_classes) > 0:
+            self.client.chat_postMessage(
+                channel=self.channel,
+                text=build_msg(closed_classes, opened_classes))

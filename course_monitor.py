@@ -11,7 +11,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import NoSuchElementException
 
 # from notification_emitter import ConsoleEmitter
-from notification_emitter import TwillioMsgEmitter
+from notification_emitter import SlackEmitter
 
 # how long should selenium wait for an element to appear...
 implicit_wait_time = 30
@@ -20,9 +20,6 @@ random_params = (30, 40)
 random_time = random.randrange
 
 debug = False
-
-# emitter = ConsoleEmitter()
-emitter = TwillioMsgEmitter()
 
 
 def d_print(msg):
@@ -165,6 +162,9 @@ if __name__ == '__main__':
     load_dotenv(os.path.join('./', '.env'))
 
     debug = args.debug is not None
+
+    # emitter = ConsoleEmitter()
+    emitter = SlackEmitter(os.getenv('SLACK_TOKEN'), os.getenv('SLACK_CHANNEL_ID'))
 
     browser = init_browser_link(args.link)
 

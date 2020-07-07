@@ -1,28 +1,31 @@
-# UT Course Monitor
-UT Course Monitor is a simple script that allows users to run a course availability checker in the background and notify them if a desired course opens up in the schedule.
+# Course Change Notifier
+Course Change Notifier is a simple script that allows users to run a course availability checker for UT Austin in the background and notify them via Slack if a desired course opens up in the schedule.
 This requires Python 3.6+ and Google Chrome, Selenium Chrome drivers
 
 ## Get Started
 ```
-git clone <url>
+git clone https://github.com/PranavRayudu/Course-Change-Notifier.git
 pip install -r requirements.txt
 ```
 
-Download the webdriver of your favorite browser (only Chrome is supported right now, change ``webdriver.Chrome()`` to desired browser) and add it to the PATH variable or place it in the project folder. 
+Download the webdriver of your favorite browser (only Chrome is supported right now, change ``webdriver.Chrome()`` to desired browser) and add it to the PATH variable or place it in this project folder. 
 Chrome drivers are available [here](https://chromedriver.chromium.org/downloads).
 
-You will need a Twillio account to send SMS messages to your phone when a course opens up.
-> section in progress
+Having the UT Registration Plus extension does not affect this script.
+This also requires user to log into their UT ID and Duo everytime it starts up. Script will continue executing once you reach the course schedule page.
 
-having the UT Registration Plus extension does not affect this script.
-This also requires user to be log into their UT_ID and DUO when it starts up. Script will continue executing once you reach the course schedule.
-To configure your project for Twillio, create a ``.env`` file and add the following data
+Course change updated are sent to you via Slack. You can create a workspace [here](https://slack.com/get-started#/create) and your own Slack app [here](https://api.slack.com/apps?new_app=1).
+[This](https://howchoo.com/g/yjuxytcyzta/python-send-slack-messages-slackclient) tutorial helps you with setting permissions and getting your access token.
+Moreover, be sure to add your bot to the workspace and channel you want it to post messages to.
+
+To configure your project for Slack, create a ``.env`` file and add the following data
 ```.env
-
+SLACK_TOKEN=<Bot User OAuth Access Token>
+SLACK_CHANNEL=<Channel Id> # see https://stackoverflow.com/questions/40940327/what-is-the-simplest-way-to-find-a-slack-team-id-and-a-channel-id
 ```
-otherwise, use the ConsoleEmitter (prints to console) by commenting out Twillio's import statement and initializer.
+otherwise, use the ConsoleEmitter (prints to console) by commenting out Slack's import statement and initializer.
 
-To run the project, simply run ``python course-monitor.py -link=<link of page> --uid <uid of course 1> <uid of course 2>``
+To run the project, simply run ``python course-monitor.py -link=<link of page> --uid <uid of course 1> <uid of course 2>...``
 The ``-link`` argument is required and takes in the url of the first page of results of the courses the script should monitor
 The ``--uid`` argument is optional (None by default) and takes in a space separated list of course unique ids to keep track of. If you do not use this, all courses on the page will be monitored.
 The ``--debug`` argument is optional (False by default) and enables printing data to the console. It is recommended you keep this on.
@@ -33,7 +36,9 @@ python course_monitor.py -link https://utdirect.utexas.edu/apps/registrar/course
 ```
 
 ## Todo
-- [ ] Add messaging to user (Twillio API)
+- [ ] Add debug statements for Slack client
+- [ ] Add direct links to add courses from every message
+- [ ] Complete tests for course change detection 
 
 ## Contribution
 This script is an open-source project that relies on its users to get better. If you would like to add features, please fork and create a PR.
