@@ -15,8 +15,11 @@ You will need a Twillio account to send SMS messages to your phone when a course
 > section in progress
 
 If you have the UT Schedule extension, auto-load may need to be turned off. 
+This also requires user to be logged into their UT_ID and DUO (with remember for 30 days) beforehand.
 To configure your project, create a ``.env`` file and add the following data
-To run the project, simply run ``python course-monitor.py --page=<link of page>``
+To run the project, simply run ``python course-monitor.py -link=<link of page> --uid 12345 101010``
+The ``-link`` argument is required and takes in the url of the first page of results of the courses the script should monitor
+The ``--uid`` argument is optional and takes in a space separated list of course unique ids to keep track of. If you do not use this, then all courses will be monitored.
 
 ## Todo
 - [ ] Add course comparision
