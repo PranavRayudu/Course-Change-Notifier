@@ -11,6 +11,7 @@ statuses = [
 
 
 def categorize_classes(classes: dict) -> (dict, dict):
+    """sort classes into closed and opened category and return 2 dicts with value (classname, old status, new status)"""
     closed = {}
     opened = {}
 
@@ -26,9 +27,6 @@ def categorize_classes(classes: dict) -> (dict, dict):
 
 class NotificationEmitter:
 
-    def __init__(self):
-        pass
-
     def dispatch_emit(self, closed_classes: dict, opened_classes: dict):
         pass
 
@@ -41,9 +39,6 @@ class NotificationEmitter:
 
 
 class ConsoleEmitter(NotificationEmitter):
-
-    def __init__(self):
-        super().__init__()
 
     def dispatch_emit(self, closed_classes: dict, opened_classes: dict):
 
@@ -60,12 +55,13 @@ class ConsoleEmitter(NotificationEmitter):
 class SlackEmitter(NotificationEmitter):
 
     def __init__(self, semester_code: str, token: str, channel: str):
-        super().__init__()
+        """stores the semester code/id and creates Slackbot using OAuth access token and channel ID to post to"""
         self.semester_code = semester_code
         self.client = slack.WebClient(token=token)
         self.channel = channel
 
     def build_closed_msg(self, closed_classes: dict) -> str:
+        """builds message text for classes that have closed up"""
         msg = 'These classes closed up\n'
 
         for uid, (name, old_status, new_status) in closed_classes.items():
@@ -75,6 +71,7 @@ class SlackEmitter(NotificationEmitter):
         return msg
 
     def build_opened_msg(self, opened_classes: dict) -> str:
+        """builds message text for classes that opened up, along with registration links for each class"""
         msg = 'These classes opened up\n'
 
         for uid, (name, old_status, new_status) in opened_classes.items():
@@ -89,6 +86,7 @@ class SlackEmitter(NotificationEmitter):
         return msg
 
     def build_blocks(self, closed_classes: dict, opened_classes: dict) -> list:
+        """builds list of block sections with class info in markdown to send in Slack message"""
         blocks = []
 
         if len(closed_classes) > 0:
@@ -110,6 +108,7 @@ class SlackEmitter(NotificationEmitter):
         return blocks
 
     def dispatch_emit(self, closed_classes: dict, opened_classes: dict):
+        """sends message with closed and opened classes info via Slack client to channel specified in channel id"""
         if len(closed_classes) > 0 or len(opened_classes) > 0:
             return self.client.chat_postMessage(
                 channel=self.channel,

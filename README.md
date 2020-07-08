@@ -26,9 +26,9 @@ SLACK_CHANNEL=<Channel Id> # see https://stackoverflow.com/questions/40940327/wh
 otherwise, use the ConsoleEmitter (prints to console) by commenting out Slack's import statement and initializer.
 
 To run the project, simply run ``python course-monitor.py -link=<link of page> --uid <uid of course 1> <uid of course 2>...``
-The ``-link`` argument is required and takes in the url of the first page of results of the courses the script should monitor
-The ``--uid`` argument is optional (None by default) and takes in a space separated list of course unique ids to keep track of. If you do not use this, all courses on the page will be monitored.
-The ``--debug`` argument is optional (False by default) and enables printing data to the console. It is recommended you keep this on.
+The ``--link`` or ``-l`` argument is required and takes in the url of the first page of results of the courses the script should monitor
+The ``--uid`` or ``-u`` argument is optional (None by default) and takes in a space separated list of course unique ids to keep track of. If you do not use this, all courses on the page will be monitored.
+The ``--debug`` or ``-d`` argument is optional (False by default) and enables printing data to the console. It is recommended you keep this on.
 
 Example usage
 ```commandline

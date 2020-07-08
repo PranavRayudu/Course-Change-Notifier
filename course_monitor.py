@@ -143,21 +143,23 @@ def changelist(p_courses: dict, c_courses: dict) -> dict:
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Monitor UT Course Schedule')
-    parser.add_argument('-link',
+    parser = argparse.ArgumentParser(description='Monitor UT Course Schedule', allow_abbrev=True)
+    parser.add_argument('--link', '-l',
                         metavar='<href>',
                         type=str,
                         required=True,
                         help='the url of the course schedule search results')
 
-    parser.add_argument('--uid',
+    parser.add_argument('--uid', '-u',
                         metavar='id',
                         type=int,
-                        required=False,
                         nargs="+",
+                        default=[],
+                        required=False,
                         help='space separated list of the unique IDs of courses we are interested in searching')
 
-    parser.add_argument('--debug',
+    parser.add_argument('--debug', '-d',
+                        default=False,
                         required=False,
                         action='store_true',
                         help='add this flag to see debug / status prints')
