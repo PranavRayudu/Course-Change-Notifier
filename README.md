@@ -1,6 +1,6 @@
 # Course Change Notifier
-Course Change Notifier is a simple script that allows users to run a course availability checker for UT Austin in the background and notify them via Slack if a desired course opens up in the schedule.
-This requires Python 3.6+ and Google Chrome, Selenium Chrome drivers
+Course Change Notifier is a simple script that allows users to run a course availability checker for UT Austin. It runs in the background and notifies user via Slack if a desired course opens up in the schedule.
+This requires Python 3.6+, Google Chrome, and Selenium Chrome drivers.
 
 ## Get Started
 ```
@@ -36,10 +36,11 @@ python course_monitor.py -link https://utdirect.utexas.edu/apps/registrar/course
 ```
 
 ## Todo
-- [ ] Add debug statements for Slack client
-- [ ] Add direct links to add courses from every message
-- [ ] Complete tests for course change detection 
+- [x] Add debug statements for Slack client
+- [x] Add direct links to add courses from every message
+- [ ] Complete tests for course change detection
+- [ ] Add automatic login to UT ID
 
 ## Contribution
-This script is an open-source project that relies on its users to get better. If you would like to add features, please fork and create a PR.
+If you would like to add features/fix bugs, please fork and create a PR.
 If you would like to add your own notification method, simply extent the NotificationEmitter class and override the constructor and emit() function.

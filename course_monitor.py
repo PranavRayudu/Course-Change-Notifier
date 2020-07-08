@@ -1,8 +1,8 @@
 import os
 import sys
 import time
-import argparse
 import random
+import argparse
 
 from dotenv import load_dotenv
 from bs4 import BeautifulSoup
@@ -28,12 +28,17 @@ def d_print(msg):
         print(msg)
 
 
-def init_browser_link(link: str):
+def init_browser_link():
     """Starts browser and navigates to course schedule"""
-    d_print('browser going to {} (you may need to sign in)'.format(link))
 
     driver = webdriver.Chrome()  # todo change this to support any browser
     driver.implicitly_wait(implicit_wait_time)
+    return driver
+
+
+def goto_course_page(driver, link: str):
+    d_print('browser going to {} (you may need to sign in)'.format(link))
+
     driver.get(link)
 
     # wait for user logs in and the courses can be seen
@@ -164,9 +169,11 @@ if __name__ == '__main__':
     debug = args.debug is not None
 
     # emitter = ConsoleEmitter()
-    emitter = SlackEmitter(os.getenv('SLACK_TOKEN'), os.getenv('SLACK_CHANNEL_ID'))
 
-    browser = init_browser_link(args.link)
+    browser = goto_course_page(init_browser_link(), args.link)
+    soup = BeautifulSoup(browser.page_source, 'html.parser')
+    semester_id = soup.find('input', {'name': 'ccyys', 'type': 'hidden'}).get('value')
+    emitter = SlackEmitter(semester_id, os.getenv('SLACK_TOKEN'), os.getenv('SLACK_CHANNEL_ID'))
 
     uid = [str(uid) for uid in args.uid]
 
@@ -175,7 +182,8 @@ if __name__ == '__main__':
 
     # constant refresh loop
     while True:
-        browser.get(args.link)
+
+        goto_course_page(browser, args.link)
         curr_courses = {}
 
         # loop through all pages
@@ -191,7 +199,7 @@ if __name__ == '__main__':
             changed_courses = changelist(prev_courses, curr_courses)
 
             if len(changed_courses) > 0:
-                emitter.emit_msg(changed_courses)
+                emitter.emit(changed_courses)
 
         prev_courses = curr_courses
         sleep_time = random_time(*random_params)
