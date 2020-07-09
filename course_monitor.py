@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import time
 import random
@@ -61,6 +62,14 @@ def goto_course_page(browser, link: str, usr_name: str, passwd: str):
     return browser
 
 
+def parse_header(header: str) -> (str, str):
+    """splits header text into its course code and name components"""
+    header_matches = re.compile(r"([A-Z ]+)(\d{3}\w?) ([-\w' ]+)").match(header.strip())
+    course_code = header_matches.group(1).strip() + ' ' + header_matches.group(2).strip()
+    course_name = header_matches.group(3).strip()
+    return course_code, course_name
+
+
 def parse_courses(browser) -> dict:
     """Parses page with Beautiful Soup and returns a dictionary with unique id as keys an (Course Title,
     Availability) tuple as value """
@@ -73,18 +82,18 @@ def parse_courses(browser) -> dict:
 
         rows = table_body.find_all('tr')
 
-        curr_header = None
+        course_code = None
         for row in rows:
             # rows can only have header or the section information, but not both
             header = row.find('td', {'class': 'course_header'})
-            unique = row.find('td', {'data-th': 'Unique'})
-            status = row.find('td', {'data-th': 'Status'})
 
             if header:
-                curr_header = header.text.strip()
+                course_code, _ = parse_header(header.text.strip())
             else:
-                assert not header
-                courses[unique.text] = (curr_header, status.text)
+                unique = row.find('td', {'data-th': 'Unique'}).text
+                professor = row.find('td', {'data-th': 'Instructor'}).text
+                status = row.find('td', {'data-th': 'Status'}).text
+                courses[unique] = (course_code, professor, status)
     else:
         d_print('did not find table in course schedule. What is going on?')
 
@@ -132,15 +141,15 @@ def changelist(p_courses: dict, c_courses: dict) -> dict:
     """Get a dict of changed courses with old and new statuses"""
     changed_courses = {}
 
-    for uid, (name, status) in c_courses.items():
+    for uid, (code, prof, status) in c_courses.items():
 
         if uid in p_courses:
-            (p_name, p_status) = p_courses[uid]
-            assert p_name == name
+            (_, _, p_status) = p_courses[uid]
+
             if p_status != status:
-                changed_courses[uid] = (name, p_status, status)
+                changed_courses[uid] = (code, prof, p_status, status)
         else:
-            d_print('lost {} ({}) from refreshed course list'.format(name, uid))
+            d_print('lost {} ({}) from refreshed course list'.format(code, uid))
 
     if len(changed_courses) > 0:
         d_print('list of courses that changed statuses')

@@ -21,12 +21,12 @@ def categorize_classes(classes: dict) -> (dict, dict):
     closed = {}
     opened = {}
 
-    for uid, (name, prev_state, new_state) in classes.items():
+    for uid, (code, prof, prev_state, new_state) in classes.items():
         prev_severity = statuses.index(prev_state)
         new_severity = statuses.index(new_state)
 
         category = closed if new_severity > prev_severity else opened
-        category[uid] = (name, prev_state, new_state)
+        category[uid] = (code, prof, prev_state, new_state)
 
     return closed, opened
 
@@ -50,42 +50,41 @@ class ConsoleEmitter(NotificationEmitter):
 
         if len(closed_classes) > 0:
             print('Here are the classes that closed up')
-            for uid, (name, prev, new) in closed_classes.items():
-                print('{} changed from {} to {}!'.format(name, prev, new))
+            for uid, (code, prof, prev, new) in closed_classes.items():
+                print('{} by {} changed from {} to {}!'.format(code, prof, prev, new))
 
             print('Here are the classes that opened up')
-            for uid, (name, prev, new) in opened_classes.items():
-                print('{} changed from {} to {}!'.format(name, prev, new))
+            for uid, (code, prof, prev, new) in opened_classes.items():
+                print('{} by {} changed from {} to {}!'.format(code, prof, prev, new))
 
 
 class SlackEmitter(NotificationEmitter):
 
     def __init__(self, semester_code: str, token: str, channel: str):
-        """stores the semester code/id and creates Slackbot using OAuth access token and channel ID to post to"""
+        """stores the semester code/id and creates SlackBot using OAuth access token and channel ID to post to"""
         self.semester_code = semester_code
         self.client = slack.WebClient(token=token)
         self.channel = channel
 
     def build_closed_msg(self, closed_classes: dict) -> str:
         """builds message text for classes that have closed up"""
-        msg = 'These classes closed up\n'
+        msg = 'These classes closed up:\n'
 
-        for uid, (name, old_status, new_status) in closed_classes.items():
-            msg += '• {}: {} ({} -> {})\n'.format(uid, name, old_status, new_status)
+        for uid, (code, prof, old_status, new_status) in closed_classes.items():
+            msg += '• {}: {} by {} ({} → {})\n'.format(uid, code, prof, old_status, new_status)
         msg += '\n'
 
         return msg
 
     def build_opened_msg(self, opened_classes: dict) -> str:
         """builds message text for classes that opened up, along with registration links for each class"""
-        msg = 'These classes opened up\n'
+        msg = 'These classes opened up:\n'
 
-        for uid, (name, old_status, new_status) in opened_classes.items():
-            msg += '• {}: {} ({} -> {}) ' \
-                   '<https://utdirect.utexas.edu/registration/registration.WBX?' \
+        for uid, (code, prof, old_status, new_status) in opened_classes.items():
+            msg += '• <https://utdirect.utexas.edu/registration/registration.WBX?' \
                    's_ccyys={}&s_af_unique={}' \
-                   '|Register>\n' \
-                .format(uid, name, old_status, new_status, self.semester_code, uid)
+                   '|{}>: {} by {} ({} → {}) \n' \
+                .format(self.semester_code, uid, uid, code, prof, old_status, new_status)
 
         msg += 'Register for classes <https://utdirect.utexas.edu/registration/registration.WBX?s_ccyys={}' \
                '|here>.'.format(self.semester_code)

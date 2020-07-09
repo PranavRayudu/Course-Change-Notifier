@@ -34,6 +34,7 @@ SLACK_CHANNEL=<Channel Id> # see https://stackoverflow.com/questions/40940327/wh
 ```
 otherwise, use the ConsoleEmitter (prints to console) by commenting out Slack's import statement and initializer.
 
+#### 3. Running the script
 To run the project, simply run ``python course-monitor.py -link=<link of page> --uid <uid of course 1> <uid of course 2>...``
 The ``--link`` or ``-l`` argument is required and takes in the url of the first page of results of the courses the script should monitor
 The ``--uid`` or ``-u`` argument is optional (None by default) and takes in a space separated list of course unique ids to keep track of. If you do not use this, all courses on the page will be monitored.
@@ -46,10 +47,10 @@ python course_monitor.py -link https://utdirect.utexas.edu/apps/registrar/course
 
 ## Todo
 - [x] Add direct links to add courses from every message
-- [ ] Complete tests for course change detection
+- [x] Complete tests for course change detection
 - [x] Add automatic login to UT ID
-- [ ] Add support for Email notification
 - [x] Add support for multiple notification emitters
+- [ ] Add support for Email notification
 
 ## Contribution
 If you would like to add features/fix bugs, please fork and create a PR.
