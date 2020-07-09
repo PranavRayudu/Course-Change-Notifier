@@ -10,6 +10,12 @@ statuses = [
     'closed']
 
 
+def dispatch_all_emitters(emitters: [], classes: dict):
+    """send class change message on every emitter in emitters"""
+    for emitter in emitters:
+        emitter.emit(classes)
+
+
 def categorize_classes(classes: dict) -> (dict, dict):
     """sort classes into closed and opened category and return 2 dicts with value (classname, old status, new status)"""
     closed = {}

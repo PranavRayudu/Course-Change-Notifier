@@ -49,7 +49,7 @@ python course_monitor.py -link https://utdirect.utexas.edu/apps/registrar/course
 - [ ] Complete tests for course change detection
 - [x] Add automatic login to UT ID
 - [ ] Add support for Email notification
-- [ ] Add support for multiple notification emitters
+- [x] Add support for multiple notification emitters
 
 ## Contribution
 If you would like to add features/fix bugs, please fork and create a PR.

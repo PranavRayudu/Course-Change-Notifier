@@ -10,7 +10,7 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import NoSuchElementException
 
-from notification_emitter import SlackEmitter  # , ConsoleEmitter
+from notification_emitter import dispatch_all_emitters, SlackEmitter, ConsoleEmitter
 
 # random timer is customizable by setting the method and its parameters here
 random_time = random.randrange
@@ -185,7 +185,10 @@ if __name__ == '__main__':
     soup = BeautifulSoup(browser.page_source, 'html.parser')
     semester_id = soup.find('input', {'name': 'ccyys', 'type': 'hidden'}).get('value')
 
-    emitter = SlackEmitter(semester_id, os.getenv('SLACK_TOKEN'), os.getenv('SLACK_CHANNEL_ID'))
+    emitters = [
+        SlackEmitter(semester_id, os.getenv('SLACK_TOKEN'), os.getenv('SLACK_CHANNEL_ID')),
+        ConsoleEmitter(),
+    ]
 
     uid = [str(uid) for uid in args.uid]
 
@@ -211,7 +214,7 @@ if __name__ == '__main__':
             changed_courses = changelist(prev_courses, curr_courses)
 
             if len(changed_courses) > 0:
-                emitter.emit(changed_courses)
+                dispatch_all_emitters(emitters, changed_courses)
 
         prev_courses = curr_courses
         sleep_time = random_time(*random_params)
