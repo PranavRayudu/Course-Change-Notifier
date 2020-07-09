@@ -14,11 +14,20 @@ Chrome drivers are available [here](https://chromedriver.chromium.org/downloads)
 Having the UT Registration Plus extension does not affect this script.
 This also requires user to log into their UT ID and Duo everytime it starts up. Script will continue executing once you reach the course schedule page.
 
+#### 1. Setting up UT automatic login and Duo push notifications
+Create and add these to your ```.env``` file:
+```commandline
+EID=<UT EID>
+UT_PASS=<UT systems password>
+```
+In Duo, set push notifications as your preferred method of signing in, so Duo will automatically send a push notification when you need to sign in. 
+
+#### 2. Setting up Slack notifications
 Course change updated are sent to you via Slack. You can create a workspace [here](https://slack.com/get-started#/create) and your own Slack app [here](https://api.slack.com/apps?new_app=1).
 [This](https://howchoo.com/g/yjuxytcyzta/python-send-slack-messages-slackclient) tutorial helps you with setting permissions and getting your access token.
 Moreover, be sure to add your bot to the workspace and channel you want it to post messages to.
 
-To configure your project for Slack, create a ``.env`` file and add the following data
+To configure your project for Slack, and add the following data to your ```.env``` file
 ```.env
 SLACK_TOKEN=<Bot User OAuth Access Token>
 SLACK_CHANNEL=<Channel Id> # see https://stackoverflow.com/questions/40940327/what-is-the-simplest-way-to-find-a-slack-team-id-and-a-channel-id
@@ -36,10 +45,11 @@ python course_monitor.py -link https://utdirect.utexas.edu/apps/registrar/course
 ```
 
 ## Todo
-- [x] Add debug statements for Slack client
 - [x] Add direct links to add courses from every message
 - [ ] Complete tests for course change detection
-- [ ] Add automatic login to UT ID
+- [x] Add automatic login to UT ID
+- [ ] Add support for Email notification
+- [ ] Add support for multiple notification emitters
 
 ## Contribution
 If you would like to add features/fix bugs, please fork and create a PR.

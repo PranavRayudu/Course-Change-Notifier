@@ -10,14 +10,11 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import NoSuchElementException
 
-# from notification_emitter import ConsoleEmitter
-from notification_emitter import SlackEmitter
+from notification_emitter import SlackEmitter  # , ConsoleEmitter
 
-# how long should selenium wait for an element to appear...
-implicit_wait_time = 30
 # random timer is customizable by setting the method and its parameters here
-random_params = (30, 40)
 random_time = random.randrange
+random_params = (180, 300)  # wait 3-5 min
 
 debug = False
 
@@ -28,34 +25,48 @@ def d_print(msg):
         print(msg)
 
 
-def init_browser_link():
-    """Starts browser and navigates to course schedule"""
+def do_signin_seq(browser, usr_name: str, passwd: str) -> bool:
+    if 'Sign in with your UT EID' in browser.title:
+        heading = browser.find_element_by_xpath("//div[@id='message']/h1").text
 
-    driver = webdriver.Chrome()  # todo change this to support any browser
-    driver.implicitly_wait(implicit_wait_time)
-    return driver
+        if 'Sign in with your UT EID' in heading:
+            username_field = browser.find_element_by_id('username')
+            username_field.clear()
+            username_field.send_keys(usr_name)
+
+            password_field = browser.find_element_by_id('password')
+            password_field.clear()
+            password_field.send_keys(passwd)
+
+            signin_btn = browser.find_element_by_xpath("//input[@type='submit']")
+            signin_btn.click()
+
+        elif 'Multi-Factor Authentication Required' in heading:
+            # todo click send push notification if it is not clicked or it timed out... does Duo allow that?
+            d_print('Please authorize on Duo')
+
+    return 'UT Austin Registrar:' in browser.title and 'course search' in browser.title
 
 
-def goto_course_page(driver, link: str):
+def goto_course_page(browser, link: str, usr_name: str, passwd: str):
     d_print('browser going to {} (you may need to sign in)'.format(link))
 
-    driver.get(link)
+    browser.get(link)
 
-    # wait for user logs in and the courses can be seen
-    WebDriverWait(driver, sys.maxsize) \
-        .until(lambda x: 'UT Austin Registrar:' in driver.title and 'course search' in driver.title)
+    # wait until user logs in and the courses can be seen
+    WebDriverWait(browser, sys.maxsize).until(lambda _: do_signin_seq(browser, usr_name, passwd))
 
     d_print('successfully entered course schedule')
 
-    return driver
+    return browser
 
 
-def parse_courses(driver) -> dict:
+def parse_courses(browser) -> dict:
     """Parses page with Beautiful Soup and returns a dictionary with unique id as keys an (Course Title,
     Availability) tuple as value """
 
     courses = {}
-    soup = BeautifulSoup(driver.page_source, 'html.parser')
+    soup = BeautifulSoup(browser.page_source, 'html.parser')
     table = soup.find('table', {'class': 'rwd-table results'})
     if table:
         table_body = table.find('tbody')
@@ -82,21 +93,18 @@ def parse_courses(driver) -> dict:
     return courses
 
 
-def click_next(driver) -> bool:
+def click_next(browser) -> bool:
     """Returns true if a next button exists and was clicked, false otherwise"""
 
-    success = False
     try:
-        driver.implicitly_wait(0)
-        driver.find_element_by_id('next_nav_link').click()
-        success = True
+        browser.find_element_by_id('next_nav_link').click()
+        d_print('found another page and clicking it!')
+        return True
     except NoSuchElementException:
         pass
-    finally:
-        driver.implicitly_wait(implicit_wait_time)
 
-        d_print('found another page and clicking it!' if success else 'this is the last page of courses')
-        return success
+    d_print('this is the last page of courses')
+    return False
 
 
 def filter_courses(courses: dict, uids: list) -> dict:
@@ -171,10 +179,12 @@ if __name__ == '__main__':
     debug = args.debug is not None
 
     # emitter = ConsoleEmitter()
+    usr_name, passwd = (os.getenv('EID'), os.getenv('UT_PASS'))
+    browser = goto_course_page(webdriver.Chrome(), args.link, usr_name, passwd)
 
-    browser = goto_course_page(init_browser_link(), args.link)
     soup = BeautifulSoup(browser.page_source, 'html.parser')
     semester_id = soup.find('input', {'name': 'ccyys', 'type': 'hidden'}).get('value')
+
     emitter = SlackEmitter(semester_id, os.getenv('SLACK_TOKEN'), os.getenv('SLACK_CHANNEL_ID'))
 
     uid = [str(uid) for uid in args.uid]
@@ -185,7 +195,7 @@ if __name__ == '__main__':
     # constant refresh loop
     while True:
 
-        goto_course_page(browser, args.link)
+        goto_course_page(browser, args.link, usr_name, passwd)
         curr_courses = {}
 
         # loop through all pages
