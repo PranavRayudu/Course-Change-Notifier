@@ -68,7 +68,11 @@ class SlackEmitter(NotificationEmitter):
 
     def build_closed_msg(self, closed_classes: dict) -> str:
         """builds message text for classes that have closed up"""
-        msg = 'These classes closed up:\n'
+
+        if len(closed_classes) == 0:
+            return ''
+
+        msg = 'These classes closed up:\n' if len(closed_classes) > 1 else 'This class closed up:\n'
 
         for uid, (code, prof, old_status, new_status) in closed_classes.items():
             msg += '• {}: {} by {} ({} → {})\n'.format(uid, code, prof, old_status, new_status)
@@ -78,7 +82,11 @@ class SlackEmitter(NotificationEmitter):
 
     def build_opened_msg(self, opened_classes: dict) -> str:
         """builds message text for classes that opened up, along with registration links for each class"""
-        msg = 'These classes opened up:\n'
+
+        if len(opened_classes) == 0:
+            return ''
+
+        msg = 'These classes opened up:\n' if len(opened_classes) > 1 else 'This class opened up:\n'
 
         for uid, (code, prof, old_status, new_status) in opened_classes.items():
             msg += '• <https://utdirect.utexas.edu/registration/registration.WBX?' \
