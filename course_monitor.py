@@ -31,16 +31,18 @@ def do_signin_seq(browser, usr_name: str, passwd: str) -> bool:
         heading = browser.find_element_by_xpath("//div[@id='message']/h1").text
 
         if 'Sign in with your UT EID' in heading:
-            username_field = browser.find_element_by_id('username')
-            username_field.clear()
-            username_field.send_keys(usr_name)
 
-            password_field = browser.find_element_by_id('password')
-            password_field.clear()
-            password_field.send_keys(passwd)
+            if usr_name and passwd:
+                username_field = browser.find_element_by_id('username')
+                username_field.clear()
+                username_field.send_keys(usr_name)
 
-            signin_btn = browser.find_element_by_xpath("//input[@type='submit']")
-            signin_btn.click()
+                password_field = browser.find_element_by_id('password')
+                password_field.clear()
+                password_field.send_keys(passwd)
+
+                signin_btn = browser.find_element_by_xpath("//input[@type='submit']")
+                signin_btn.click()
 
         elif 'Multi-Factor Authentication Required' in heading:
             # todo click send push notification if it is not clicked or it timed out... does Duo allow that?
@@ -159,8 +161,7 @@ def changelist(p_courses: dict, c_courses: dict) -> dict:
     return changed_courses
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Monitor UT Course Schedule', allow_abbrev=True)
+def add_args(parser) -> None:
     parser.add_argument('--link', '-l',
                         metavar='<href>',
                         type=str,
@@ -181,25 +182,36 @@ if __name__ == '__main__':
                         action='store_true',
                         help='add this flag to see debug / status prints')
 
+
+def build_emitters(sem_id: str) -> []:
+    emitters = [ConsoleEmitter()]
+    if os.getenv('SLACK_TOKEN') and os.getenv('SLACK_CHANNEL_ID'):
+        emitters.append(SlackEmitter(sem_id, os.getenv('SLACK_TOKEN'), os.getenv('SLACK_CHANNEL_ID')))
+
+    return emitters
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Monitor UT Course Schedule', allow_abbrev=True)
+    add_args(parser)
     args = parser.parse_args()
 
     load_dotenv(os.path.join('./', '.env'))
 
     debug = args.debug is not None
+    uid = [str(uid) for uid in args.uid]
 
-    # emitter = ConsoleEmitter()
+    if len(uid) == 0:
+        print('Looks like you did not add any courses to track. Exiting')
+        exit()
+
     usr_name, passwd = (os.getenv('EID'), os.getenv('UT_PASS'))
     browser = goto_course_page(webdriver.Chrome(), args.link, usr_name, passwd)
 
     soup = BeautifulSoup(browser.page_source, 'html.parser')
     semester_id = soup.find('input', {'name': 'ccyys', 'type': 'hidden'}).get('value')
 
-    emitters = [
-        SlackEmitter(semester_id, os.getenv('SLACK_TOKEN'), os.getenv('SLACK_CHANNEL_ID')),
-        ConsoleEmitter(),
-    ]
-
-    uid = [str(uid) for uid in args.uid]
+    emitters = build_emitters(semester_id)
 
     prev_courses = None
     curr_courses = None
