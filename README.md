@@ -35,14 +35,14 @@ SLACK_CHANNEL=<Channel Id> # see https://stackoverflow.com/questions/40940327/wh
 otherwise, use the ConsoleEmitter (prints to console) by commenting out Slack's import statement and initializer.
 
 #### 3. Running the script
-To run the project, simply run ``python course-monitor.py -link=<link of page> --uid <uid of course 1> <uid of course 2>...``
+To run the project, simply run ``python course-monitor.py --link="<link of page>" --uid <uid of course 1> <uid of course 2>...``
 The ``--link`` or ``-l`` argument is required and takes in the url of the first page of results of the courses the script should monitor
 The ``--uid`` or ``-u`` argument is optional (None by default) and takes in a space separated list of course unique ids to keep track of. If you do not use this, all courses on the page will be monitored.
 The ``--debug`` or ``-d`` argument is optional (False by default) and enables printing data to the console. It is recommended you keep this on.
 
 Example usage
 ```commandline
-python course_monitor.py -link https://utdirect.utexas.edu/apps/registrar/course_schedule/20209/results/?flags=CULTDIVR&search_type_main=CORE&ccyys=20209&fos_fl=&level=&instr_last_name=&instr_first_initial=&fos_cn=&course_number=&start_unique=&end_unique=&mtg_days_st=000000&mtg_start_time_st=00&core_code=060 --uid 37965 --debug
+python course_monitor.py --link "https://utdirect.utexas.edu/apps/registrar/course_schedule/20209/results/?flags=CULTDIVR&search_type_main=CORE&ccyys=20209&fos_fl=&level=&instr_last_name=&instr_first_initial=&fos_cn=&course_number=&start_unique=&end_unique=&mtg_days_st=000000&mtg_start_time_st=00&core_code=060" --uid 37960 37965 37970 37975 --debug
 ```
 
 ## Todo
