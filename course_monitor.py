@@ -121,6 +121,11 @@ def click_next(browser) -> bool:
 def filter_courses(courses: dict, uids: list) -> dict:
     """Returns subset of courses in courses that we are interested in"""
 
+    if len(uids) == 0:
+        d_print('currently tracking all courses')
+    else:
+        d_print('only tracking courses with uids: {}'.format(uids))
+
     if uids is None or len(uids) == 0:
         return courses
 
@@ -130,7 +135,6 @@ def filter_courses(courses: dict, uids: list) -> dict:
         if uid in courses:
             filtered_courses[uid] = courses[uid]
 
-    d_print('we only care about courses with uids: {}'.format(uids))
     d_print('and the filtered list is {}'.format(filtered_courses))
 
     if len(filtered_courses) == 0:
@@ -200,10 +204,6 @@ if __name__ == '__main__':
 
     debug = args.debug is not None
     uid = [str(uid) for uid in args.uid]
-
-    if len(uid) == 0:
-        print('Looks like you did not add any courses to track. Exiting')
-        exit()
 
     usr_name, passwd = (os.getenv('EID'), os.getenv('UT_PASS'))
     browser = goto_course_page(webdriver.Chrome(), args.link, usr_name, passwd)
