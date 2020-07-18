@@ -10,12 +10,6 @@ statuses = [
     'closed']
 
 
-def dispatch_all_emitters(emitters: [], classes: dict):
-    """send class change message on every emitter in emitters"""
-    for emitter in emitters:
-        emitter.emit(classes)
-
-
 def categorize_classes(classes: dict) -> (dict, dict):
     """sort classes into closed and opened category and return 2 dicts with value (classname, old status, new status)"""
     closed = {}
@@ -52,7 +46,7 @@ class ConsoleEmitter(NotificationEmitter):
             print('Here are the classes that closed up')
             for uid, (code, prof, prev, new) in closed_classes.items():
                 print('{} by {} changed from {} to {}!'.format(code, prof, prev, new))
-
+        if len(opened_classes) > 0:
             print('Here are the classes that opened up')
             for uid, (code, prof, prev, new) in opened_classes.items():
                 print('{} by {} changed from {} to {}!'.format(code, prof, prev, new))
@@ -63,8 +57,16 @@ class SlackEmitter(NotificationEmitter):
     def __init__(self, semester_code: str, token: str, channel: str):
         """stores the semester code/id and creates SlackBot using OAuth access token and channel ID to post to"""
         self.semester_code = semester_code
-        self.client = slack.WebClient(token=token)
         self.channel = channel
+        self.client = slack.WebClient(token=token)
+        res = self.client.auth_test()
+        if not res['ok']:
+            print("Unable to verify Slack authentication")
+            exit()
+        res = self.client.api_test()
+        if not res['ok']:
+            print("Unable to verify Slack API access")
+            exit()
 
     def build_closed_msg(self, closed_classes: dict) -> str:
         """builds message text for classes that have closed up"""
@@ -127,3 +129,9 @@ class SlackEmitter(NotificationEmitter):
                 channel=self.channel,
                 text='Some courses have changed status!',
                 blocks=self.build_blocks(closed_classes, opened_classes))
+
+
+def dispatch_all_emitters(emitters: [], classes: dict):
+    """send class change message on every emitter in emitters"""
+    for emitter in emitters:
+        emitter.emit(classes)

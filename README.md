@@ -24,12 +24,13 @@ In Duo, set push notifications as your preferred method of signing in, so Duo wi
 
 #### 2. Setting up Slack notifications
 Course change updated are sent to you via Slack. You can create a workspace [here](https://slack.com/get-started#/create) and your own Slack app [here](https://api.slack.com/apps?new_app=1).
-[This](https://howchoo.com/g/yjuxytcyzta/python-send-slack-messages-slackclient) tutorial helps you with setting permissions and getting your access token. More specifically, you need the chat:write bot token scope and have your bot added to the workspace and channel you want it to post messages to.
+[This](https://howchoo.com/g/yjuxytcyzta/python-send-slack-messages-slackclient) tutorial helps you with setting permissions and getting your access token. More specifically, you need the chat:write bot token scope.
+You must also have your bot added to the workspace and channel you want it to post messages to.
 
 To configure your project for Slack, and add the following data to your ```.env``` file
 ```.env
 SLACK_TOKEN=<Bot User OAuth Access Token>
-SLACK_CHANNEL_ID=<Channel Id> # see https://stackoverflow.com/questions/40940327/what-is-the-simplest-way-to-find-a-slack-team-id-and-a-channel-id
+SLACK_CHANNEL_ID=<channel name>  # channel's name, simply whatever follows the '#' of desired channel
 ```
 otherwise, use the ConsoleEmitter (prints to console) by commenting out Slack's import statement and initializer.
 
