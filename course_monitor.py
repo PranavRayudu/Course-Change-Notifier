@@ -26,6 +26,13 @@ def d_print(msg):
         print(msg)
 
 
+def init_browser(headless=False):
+    options = webdriver.ChromeOptions()
+    options.headless = headless
+
+    return webdriver.Chrome(options=options)
+
+
 def do_signin_seq(browser, usr_name: str, passwd: str) -> bool:
     if 'Sign in with your UT EID' in browser.title:
         heading = browser.find_element_by_xpath("//div[@id='message']/h1").text
@@ -186,6 +193,12 @@ def add_args(parser) -> None:
                         action='store_true',
                         help='add this flag to see debug / status prints')
 
+    parser.add_argument('--headless',
+                        default=False,
+                        required=False,
+                        action='store_true',
+                        help='add this flag to run Chrome in headless mode (no GUI available)')
+
 
 def build_emitters(sem_id: str) -> []:
     emitters = [ConsoleEmitter()]
@@ -206,7 +219,7 @@ if __name__ == '__main__':
     uid = [str(uid) for uid in args.uid]
 
     usr_name, passwd = (os.getenv('EID'), os.getenv('UT_PASS'))
-    browser = goto_course_page(webdriver.Chrome(), args.link, usr_name, passwd)
+    browser = goto_course_page(init_browser(args.headless), args.link, usr_name, passwd)
 
     soup = BeautifulSoup(browser.page_source, 'html.parser')
     semester_id = soup.find('input', {'name': 'ccyys', 'type': 'hidden'}).get('value')

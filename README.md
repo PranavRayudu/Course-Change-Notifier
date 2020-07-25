@@ -39,6 +39,7 @@ To run the project, simply run ``python course-monitor.py --link="<link of page>
 - The ``--link`` or ``-l`` argument is required and takes in the url of the first page of results of the courses the script should monitor
 - The ``--uid`` or ``-u`` argument is optional (None by default) and takes in a space separated list of course unique ids to keep track of. If you do not use this, all courses on the page will be monitored.
 - The ``--debug`` or ``-d`` argument is optional (False by default) and enables printing data to the console. It is recommended you keep this on.
+- The ``--headless`` argument is optional (False by default) and runs the browser without any GUI. Enable this only when you have added your UT credentials to ``.env`` and configured Duo to automatically send a push.
 
 Example usage
 ```commandline
@@ -50,7 +51,8 @@ python course_monitor.py --link "https://utdirect.utexas.edu/apps/registrar/cour
 - [x] Complete tests for course change detection
 - [x] Add automatic login to UT ID
 - [x] Add support for multiple notification emitters
-- [ ] Add support for Email notification
+- [ ] Remove dependency on links and manage host of tabs for each course
+- [ ] (Dangerous) add automatic registration
 
 ## Contribution
 If you would like to add features/fix bugs, please fork and create a PR.
