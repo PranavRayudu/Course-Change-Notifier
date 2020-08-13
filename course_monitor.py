@@ -9,7 +9,6 @@ from dotenv import load_dotenv
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.common.exceptions import NoSuchElementException
 
 from notification_emitter import dispatch_all_emitters, SlackEmitter, ConsoleEmitter
 
@@ -24,6 +23,22 @@ def d_print(msg):
     """Prints status messages only if debug flag is used"""
     if debug:
         print(msg)
+
+
+def course_link_builder(sid: str, uid: str):
+    return 'https://utdirect.utexas.edu/apps/registrar/course_schedule/{}/{}/' \
+        .format(sid, uid)
+
+
+def sem_code_builder(sem: str):
+    semester_pts = sem.lower().split()
+    if len(semester_pts) != 2 or not semester_pts[1].isnumeric():
+        raise Exception('Given semester {} is wrong'.format(sem))
+
+    season_codes = {'fall': 9, 'spring': 2, 'summer': 6}
+    year = int(semester_pts[1])
+    season_code = season_codes[semester_pts[0]]
+    return '{}{}'.format(year, season_code)
 
 
 def init_browser(headless=False):
@@ -58,17 +73,28 @@ def do_signin_seq(browser, usr_name: str, passwd: str) -> bool:
     return 'UT Austin Registrar:' in browser.title and 'course search' in browser.title
 
 
-def goto_course_page(browser, link: str, usr_name: str, passwd: str):
-    d_print('browser going to {} (you may need to sign in)'.format(link))
+def goto_page(browser, link: str, usr_name: str, passwd: str):
+    d_print('browser going to {}'.format(link))
 
     browser.get(link)
 
     # wait until user logs in and the courses can be seen
     WebDriverWait(browser, sys.maxsize).until(lambda _: do_signin_seq(browser, usr_name, passwd))
 
-    d_print('successfully entered course schedule')
-
     return browser
+
+
+def goto_course_page(browser, sid: str, uid: str, usr_name: str, passwd: str):
+    return goto_page(browser, course_link_builder(sid, uid), usr_name, passwd)
+
+
+def goto_all_course_pages(browser, sid: str, uids: [str], usr_name: str, passwd: str) -> dict:
+    curr_courses = {}
+    for uid in uids:
+        goto_course_page(browser, sid, uid, usr_name, passwd)
+        curr_courses[uid] = parse_course(browser)
+
+    return curr_courses
 
 
 def parse_header(header: str) -> (str, str):
@@ -79,75 +105,21 @@ def parse_header(header: str) -> (str, str):
     return course_code, course_name
 
 
-def parse_courses(browser) -> dict:
-    """Parses page with Beautiful Soup and returns a dictionary with unique id as keys an (Course Title,
-    Availability) tuple as value """
+def parse_course(browser_src: str) -> tuple:
+    soup = BeautifulSoup(browser_src.page_source, 'html.parser')
+    table = soup.find('table', {'id': 'details_table'})
 
-    courses = {}
-    soup = BeautifulSoup(browser.page_source, 'html.parser')
-    table = soup.find('table', {'class': 'rwd-table results'})
     if table:
-        table_body = table.find('tbody')
+        row = table.find('tbody').find('tr')
+        header = soup.find("section", {"id": "details"}).find("h2")
+        course_code, _ = parse_header(header.text)
+        # unique = row.find('td', {'data-th': 'Unique'}).text
+        professor = row.find('td', {'data-th': 'Instructor'}).text
+        status = row.find('td', {'data-th': 'Status'}).text
+        return course_code, professor, status
 
-        rows = table_body.find_all('tr')
-
-        course_code = None
-        for row in rows:
-            # rows can only have header or the section information, but not both
-            header = row.find('td', {'class': 'course_header'})
-
-            if header:
-                course_code, _ = parse_header(header.text.strip())
-            else:
-                unique = row.find('td', {'data-th': 'Unique'}).text
-                professor = row.find('td', {'data-th': 'Instructor'}).text
-                status = row.find('td', {'data-th': 'Status'}).text
-                courses[unique] = (course_code, professor, status)
     else:
-        d_print('did not find table in course schedule. What is going on?')
-
-    d_print('here are the courses I found')
-    d_print(courses)
-    return courses
-
-
-def click_next(browser) -> bool:
-    """Returns true if a next button exists and was clicked, false otherwise"""
-
-    try:
-        browser.find_element_by_id('next_nav_link').click()
-        d_print('found another page and clicking it!')
-        return True
-    except NoSuchElementException:
-        pass
-
-    d_print('this is the last page of courses')
-    return False
-
-
-def filter_courses(courses: dict, uids: list) -> dict:
-    """Returns subset of courses in courses that we are interested in"""
-
-    if len(uids) == 0:
-        d_print('currently tracking all courses')
-    else:
-        d_print('only tracking courses with uids: {}'.format(uids))
-
-    if uids is None or len(uids) == 0:
-        return courses
-
-    filtered_courses = {}
-
-    for uid in uids:
-        if uid in courses:
-            filtered_courses[uid] = courses[uid]
-
-    d_print('and the filtered list is {}'.format(filtered_courses))
-
-    if len(filtered_courses) == 0:
-        d_print('No course that we want has been found in course list. Are you sure you are on the right course page?')
-
-    return filtered_courses
+        raise Exception("Give URL {} does not contain any course information".format(browser_src.current_url))
 
 
 def changelist(p_courses: dict, c_courses: dict) -> dict:
@@ -172,20 +144,28 @@ def changelist(p_courses: dict, c_courses: dict) -> dict:
     return changed_courses
 
 
+def dispatch_onchange(prev_courses, curr_courses, emitters):
+    if prev_courses:
+        changed_courses = changelist(prev_courses, curr_courses)
+
+        if len(changed_courses) > 0:
+            dispatch_all_emitters(emitters, changed_courses)
+
+
 def add_args(parser) -> None:
-    parser.add_argument('--link', '-l',
-                        metavar='<href>',
+    parser.add_argument('--sem', '-s',
+                        metavar='semester',
                         type=str,
                         required=True,
-                        help='the url of the course schedule search results')
+                        help='Semester of course schedule to look in')
 
-    parser.add_argument('--uid', '-u',
+    parser.add_argument('--uids', '-u',
                         metavar='id',
                         type=int,
-                        nargs="+",
+                        nargs="?",
                         default=[],
-                        required=False,
-                        help='space separated list of the unique IDs of courses we are interested in searching')
+                        required=True,
+                        help='space separated list of course unique IDs we are interested in searching')
 
     parser.add_argument('--debug', '-d',
                         default=False,
@@ -216,39 +196,20 @@ if __name__ == '__main__':
     load_dotenv(os.path.join('./', '.env'))
 
     debug = args.debug is not None
-    uid = [str(uid) for uid in args.uid]
+    uids = [str(uid) for uid in args.uid]
 
     usr_name, passwd = (os.getenv('EID'), os.getenv('UT_PASS'))
-    browser = goto_course_page(init_browser(args.headless), args.link, usr_name, passwd)
+    browser = init_browser(args.headless)
 
-    soup = BeautifulSoup(browser.page_source, 'html.parser')
-    semester_id = soup.find('input', {'name': 'ccyys', 'type': 'hidden'}).get('value')
+    sid = sem_code_builder(args.sem)
+    emitters = build_emitters(sid)
 
-    emitters = build_emitters(semester_id)
-
-    prev_courses = None
-    curr_courses = None
+    prev_courses, curr_courses = None, None
 
     # constant refresh loop
     while True:
-
-        goto_course_page(browser, args.link, usr_name, passwd)
-        curr_courses = {}
-
-        # loop through all pages
-        while True:
-            curr_courses.update(parse_courses(browser))
-            if not click_next(browser):
-                break
-
-        # only keep the courses we are interested in
-        curr_courses = filter_courses(curr_courses, uid)
-
-        if prev_courses:
-            changed_courses = changelist(prev_courses, curr_courses)
-
-            if len(changed_courses) > 0:
-                dispatch_all_emitters(emitters, changed_courses)
+        curr_courses = goto_all_course_pages(browser, sid, uids, usr_name, passwd)
+        dispatch_onchange(prev_courses, curr_courses, emitters)
 
         prev_courses = curr_courses
         sleep_time = random_time(*random_params)
