@@ -30,20 +30,19 @@ You must also have your bot added to the workspace and channel you want it to po
 To configure your project for Slack, and add the following data to your ```.env``` file
 ```.env
 SLACK_TOKEN=<Bot User OAuth Access Token>
-SLACK_CHANNEL_ID=<channel name>  # channel's name, simply whatever follows the '#' of desired channel
+SLACK_CHANNEL=<channel name>  # channel's name, simply whatever follows the '#' of desired channel
 ```
 otherwise, use the ConsoleEmitter (prints to console) by commenting out Slack's import statement and initializer.
 
 #### 3. Running the script
 To run the project, simply run ``python course-monitor.py --sem "Fall 2020" --uids <uid of course 1> <uid of course 2>...``
-- The ``--sem`` or ``-s`` arguments specifies the semester to look for courses in. Must be in ``<Season> YYYY`` format.
-- The ``--uids`` or ``-u`` argument takes in a space separated list of course unique ids to keep track of.
-- The ``--debug`` or ``-d`` argument is optional (False by default) and enables printing data to the console. It is recommended you keep this on.
+- The ``--sem`` or ``-s`` arguments is required and specifies the semester to look for courses in. Must be in ``<Season> YYYY`` format.
+- The ``--uids`` or ``-u`` argument is required and takes in a space separated list of course unique ids to keep track of.
 - The ``--headless`` argument is optional (False by default) and runs the browser without any GUI. Enable this only when you have added your UT credentials to ``.env`` and configured Duo to automatically send a push.
 
 Example usage
 ```commandline
-python course_monitor.py --sem "Fall 2020" --uids 37960 37965 37970 37975 --debug --headless
+python course_monitor.py --sem "Fall 2020" --uids 37960 37965 37970 37975 --headless
 ```
 
 ## Todo
@@ -52,9 +51,9 @@ python course_monitor.py --sem "Fall 2020" --uids 37960 37965 37970 37975 --debu
 - [x] Add automatic login to UT ID
 - [x] Add support for multiple notification emitters
 - [x] Remove dependency on links
-- [ ] Allow loop scheduling and make server-ready
+- [ ] Allow dynamic scheduling and make server-ready
 - [ ] (Dangerous) add automatic registration
 
 ## Contribution
 If you would like to add features/fix bugs, please fork and create a PR.
-If you would like to add your own notification method, simply extent the NotificationEmitter class and override the constructor and emit() function.
+If you would like to add your own notification method, simply extent the NotificationEmitter class and override the constructor and __dispatch_emit() function.
