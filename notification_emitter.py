@@ -131,7 +131,7 @@ class SlackEmitter(NotificationEmitter):
                 blocks=self.build_blocks(closed_classes, opened_classes))
 
 
-def dispatch_all_emitters(emitters: [], classes: dict):
+def dispatch_emitters(emitters: [], classes: dict):
     """send class change message on every emitter in emitters"""
     for emitter in emitters:
         emitter.emit(classes)

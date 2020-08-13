@@ -1,21 +1,19 @@
 import os
 import re
 import sys
-import time
-import random
 import argparse
+from datetime import datetime
 
 from dotenv import load_dotenv
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 
-from notification_emitter import dispatch_all_emitters, SlackEmitter, ConsoleEmitter
+from apscheduler.executors.pool import ThreadPoolExecutor
+from apscheduler.schedulers.background import BackgroundScheduler
+from notification_emitter import dispatch_emitters, SlackEmitter, ConsoleEmitter
 
-# random timer is customizable by setting the method and its parameters here
-random_time = random.randrange
-random_params = (180, 300)  # wait 3-5 min
-
+wait_time = 180
 debug = False
 
 
@@ -67,7 +65,7 @@ def do_signin_seq(browser, usr_name: str, passwd: str) -> bool:
                 signin_btn.click()
 
         elif 'Multi-Factor Authentication Required' in heading:
-            # todo click send push notification if it is not clicked or it timed out... does Duo allow that?
+            # todo click send push notification if it is not clicked or it timed out
             d_print('Please authorize on Duo')
 
     return 'UT Austin Registrar:' in browser.title and 'course search' in browser.title
@@ -92,7 +90,7 @@ def goto_all_course_pages(browser, sid: str, uids: [str], usr_name: str, passwd:
     curr_courses = {}
     for uid in uids:
         goto_course_page(browser, sid, uid, usr_name, passwd)
-        curr_courses[uid] = parse_course(browser)
+        curr_courses[uid] = parse_course(browser.page_source)
 
     return curr_courses
 
@@ -106,7 +104,7 @@ def parse_header(header: str) -> (str, str):
 
 
 def parse_course(browser_src: str) -> tuple:
-    soup = BeautifulSoup(browser_src.page_source, 'html.parser')
+    soup = BeautifulSoup(browser_src, 'html.parser')
     table = soup.find('table', {'id': 'details_table'})
 
     if table:
@@ -119,7 +117,7 @@ def parse_course(browser_src: str) -> tuple:
         return course_code, professor, status
 
     else:
-        raise Exception("Give URL {} does not contain any course information".format(browser_src.current_url))
+        raise Exception("Current page does not contain any course information")
 
 
 def changelist(p_courses: dict, c_courses: dict) -> dict:
@@ -149,7 +147,14 @@ def dispatch_onchange(prev_courses, curr_courses, emitters):
         changed_courses = changelist(prev_courses, curr_courses)
 
         if len(changed_courses) > 0:
-            dispatch_all_emitters(emitters, changed_courses)
+            dispatch_emitters(emitters, changed_courses)
+
+
+def perform_course_checks():
+    global prev_courses, curr_courses
+    curr_courses = goto_all_course_pages(browser, sid, uids, usr_name, passwd)
+    dispatch_onchange(prev_courses, curr_courses, emitters)
+    prev_courses = curr_courses
 
 
 def add_args(parser) -> None:
@@ -162,7 +167,7 @@ def add_args(parser) -> None:
     parser.add_argument('--uids', '-u',
                         metavar='id',
                         type=int,
-                        nargs="?",
+                        nargs="+",
                         default=[],
                         required=True,
                         help='space separated list of course unique IDs we are interested in searching')
@@ -196,7 +201,7 @@ if __name__ == '__main__':
     load_dotenv(os.path.join('./', '.env'))
 
     debug = args.debug is not None
-    uids = [str(uid) for uid in args.uid]
+    uids = [str(uid) for uid in args.uids]
 
     usr_name, passwd = (os.getenv('EID'), os.getenv('UT_PASS'))
     browser = init_browser(args.headless)
@@ -206,12 +211,6 @@ if __name__ == '__main__':
 
     prev_courses, curr_courses = None, None
 
-    # constant refresh loop
-    while True:
-        curr_courses = goto_all_course_pages(browser, sid, uids, usr_name, passwd)
-        dispatch_onchange(prev_courses, curr_courses, emitters)
-
-        prev_courses = curr_courses
-        sleep_time = random_time(*random_params)
-        d_print('going to sleep for {} seconds'.format(sleep_time))
-        time.sleep(sleep_time)
+    scheduler = BackgroundScheduler(executors={'default': ThreadPoolExecutor(1)})
+    scheduler.add_job(perform_course_checks, 'interval', seconds=wait_time, next_run_time=datetime.now())
+    scheduler.start()
