@@ -21,21 +21,22 @@ class Course:
         self.prev_course, self.cur_course = None, None
 
     @staticmethod
-    def __parse_header(header: str) -> (str, str):
-        """splits header text into its course code and name components"""
-        header_matches = re.compile(r"([A-Z ]+)(\d{3}\w?) ([-\w' ]+)").match(header.strip())
-        course_code = header_matches.group(1).strip() + ' ' + header_matches.group(2).strip()
-        course_name = header_matches.group(3).strip()
-        return course_code, course_name
+    def __parse_course(browser_src: str) -> tuple:
 
-    def __parse_course(self, browser_src: str) -> tuple:
+        def __parse_header(header: str) -> (str, str):
+            """splits header text into its course code and name components"""
+            header_matches = re.compile(r"([A-Z ]+)(\d{3}\w?) ([-\w' ]+)").match(header.strip())
+            course_code = header_matches.group(1).strip() + ' ' + header_matches.group(2).strip()
+            course_name = header_matches.group(3).strip()
+            return course_code, course_name
+
         soup = BeautifulSoup(browser_src, 'html.parser')
         table = soup.find('table', {'id': 'details_table'})
 
         if table:
             row = table.find('tbody').find('tr')
             header = soup.find("section", {"id": "details"}).find("h2")
-            course_code, _ = self.__parse_header(header.text)
+            course_code, _ = __parse_header(header.text)
             # unique = row.find('td', {'data-th': 'Unique'}).text
             professor = row.find('td', {'data-th': 'Instructor'}).text
             status = row.find('td', {'data-th': 'Status'}).text

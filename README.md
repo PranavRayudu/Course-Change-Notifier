@@ -38,6 +38,7 @@ otherwise, use the ConsoleEmitter (prints to console) by commenting out Slack's 
 To run the project, simply run ``python course-monitor.py --sem "Fall 2020" --uids <uid of course 1> <uid of course 2>...``
 - The ``--sem`` or ``-s`` arguments is required and specifies the semester to look for courses in. Must be in ``<Season> YYYY`` format.
 - The ``--uids`` or ``-u`` argument is required and takes in a space separated list of course unique ids to keep track of.
+- The ``--period`` or ``-p`` argument is optional (180 by default) and specifies the time in seconds between consecutive course checks.
 - The ``--headless`` argument is optional (False by default) and runs the browser without any GUI. Enable this only when you have added your UT credentials to ``.env`` and configured Duo to automatically send a push.
 
 Example usage

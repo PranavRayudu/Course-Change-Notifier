@@ -12,8 +12,6 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from course_monitor import CourseMonitor, Course
 from notification_emitter import SlackEmitter, ConsoleEmitter
 
-wait_time = 180
-
 
 def sem_code_builder(sem: str):
     semester_pts = sem.lower().split()
@@ -40,14 +38,15 @@ def create_courses(uids, emitters) -> []:
     return courses
 
 
-def add_courses_to_jobs(scheduler, courses: [Course]) -> []:
+def add_courses_to_jobs(scheduler, courses: [Course], wait_time) -> []:
     jobs = []
     for course in courses:
         jobs.append(scheduler.add_job(course.do_check,
                                       'interval',
                                       seconds=wait_time,
                                       next_run_time=datetime.now(),
-                                      misfire_grace_time=wait_time))
+                                      misfire_grace_time=wait_time,
+                                      coalesce=True))
     return jobs
 
 
@@ -65,6 +64,12 @@ def add_args(parser) -> None:
                         default=[],
                         required=True,
                         help='space separated list of course unique IDs we are interested in searching')
+
+    parser.add_argument('--period', '-p',
+                        type=int,
+                        default=180,
+                        required=False,
+                        help='time spent between requests (s)')
 
     parser.add_argument('--headless',
                         default=False,
@@ -97,6 +102,7 @@ if __name__ == '__main__':
 
     sid = sem_code_builder(args.sem)
     emitters = build_emitters(sid)
+    wait_time = int(args.period)
 
     CourseMonitor.browser = browser
     CourseMonitor.sid = sid
@@ -105,8 +111,8 @@ if __name__ == '__main__':
 
     courses = create_courses(uids, emitters)
 
-    scheduler = BackgroundScheduler(executors={'default': ThreadPoolExecutor(1)})
-    jobs = add_courses_to_jobs(scheduler, courses)
+    scheduler = BackgroundScheduler(daemon=True, executors={'default': ThreadPoolExecutor(1)})
+    jobs = add_courses_to_jobs(scheduler, courses, wait_time)
     scheduler.start()
 
     while True:

@@ -127,5 +127,5 @@ class SlackEmitter(NotificationEmitter):
         if len(closed_classes) > 0 or len(opened_classes) > 0:
             return self.client.chat_postMessage(
                 channel=self.channel,
-                text='Some courses have changed status!',
+                text='Some course(s) have changed status!',
                 blocks=self.__build_blocks(closed_classes, opened_classes))
