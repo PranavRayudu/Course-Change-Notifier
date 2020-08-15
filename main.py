@@ -69,7 +69,7 @@ def build_trigger(times: tuple):
 def add_course_job(scheduler: BackgroundScheduler, course: Course, times: tuple):
     _, _, wait_time = times
 
-    job = scheduler.add_job(course.do_check,
+    job = scheduler.add_job(course.check,
                             build_trigger(times),
                             next_run_time=datetime.now(),
                             misfire_grace_time=wait_time,
@@ -99,22 +99,22 @@ def add_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('--sem', '-s',
                         metavar='semester',
                         type=str,
-                        required=True,
+                        required=False,
                         help='Semester of course schedule to look in')
 
     parser.add_argument('--uids', '-u',
                         metavar='id',
                         type=int,
-                        nargs="+",
+                        nargs="*",
                         default=[],
-                        required=True,
+                        required=False,
                         help='space separated list of course unique IDs we are interested in searching')
 
     parser.add_argument('--period', '-p',
                         type=int,
                         default=180,
                         required=False,
-                        help='time spent between requests (s)')
+                        help='time spent between requests (s); Default 180')
 
     parser.add_argument('--headless',
                         default=False,
@@ -139,11 +139,7 @@ def parse_input(cmd):
     if cmd == 'list':
         print('list of courses currently being run for')
         for uid in courses:
-            course = courses[uid]
-            if course.cur_course:
-                print('- {}: {} ({})'.format(course.cur_course[0], course.cur_course[1], course.uid))
-            else:
-                print('- {}'.format(course.uid))
+            print('- {}'.format(courses[uid]))
 
     elif cmd == 'clear':
         clear_course_jobs(courses)
@@ -178,13 +174,13 @@ if __name__ == '__main__':
     add_args(parser)
     args = parser.parse_args()
 
-    load_dotenv(os.path.join('./', '.env'))
+    load_dotenv()
 
     uids = [uid for uid in args.uids]
     usr_name, passwd = (os.getenv('EID'), os.getenv('UT_PASS'))
     browser = init_browser(args.headless)
 
-    sid = sem_code_builder(args.sem)
+    sid = sem_code_builder(args.sem or os.getenv('SEM'))
     emitters = build_emitters(sid)
 
     start_time = datetime.strptime(os.getenv('START') or '0000', "%H%M").time()

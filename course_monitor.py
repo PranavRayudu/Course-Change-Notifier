@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 
 from selenium.webdriver.support.wait import WebDriverWait
 
-debug = True
+debug = False
 
 
 def d_print(msg):
@@ -18,7 +18,9 @@ class Course:
     def __init__(self, uid: int, emitters: []):
         self.uid = uid
         self.emitters = emitters
-        self.prev_course, self.cur_course = None, None
+        self.code, self.title = None, None
+        self.prof = None
+        self.prev_status, self.status = None, None
         self.job = None
 
     def __eq__(self, obj):
@@ -27,8 +29,12 @@ class Course:
     def __hash__(self):
         return self.uid
 
-    @staticmethod
-    def __parse_course(browser_src: str) -> tuple:
+    def __str__(self):
+        if self.code and self.title:
+            return "{}: {} ({})".format(self.code, self.title, self.uid)
+        return self.uid
+
+    def __update_course(self, browser_src: str) -> tuple:
 
         def __parse_header(header: str) -> (str, str):
             """splits header text into its course code and name components"""
@@ -43,12 +49,11 @@ class Course:
         if table:
             row = table.find('tbody').find('tr')
             header = soup.find("section", {"id": "details"}).find("h2")
-            course_code, title = __parse_header(header.text)
+            self.code, self.title = __parse_header(header.text)
             # unique = row.find('td', {'data-th': 'Unique'}).text
-            professor = row.find('td', {'data-th': 'Instructor'}).text
-            status = row.find('td', {'data-th': 'Status'}).text
-            return course_code, title, professor, status
-
+            self.prof = row.find('td', {'data-th': 'Instructor'}).text
+            self.status = row.find('td', {'data-th': 'Status'}).text
+            return self.status
         else:
             raise Exception("Current page does not contain any course information")
 
@@ -56,12 +61,8 @@ class Course:
         """Get a dict of changed courses with old and new statuses"""
         changed_course = {}
 
-        (code, _, prof, status) = self.cur_course
-
-        (_, _, _, p_status) = self.prev_course
-
-        if p_status != status:
-            changed_course[self.uid] = (code, prof, p_status, status)
+        if self.prev_status != self.status:
+            changed_course[self.uid] = (self.code, self.prof, self.prev_status, self.status)
 
         if len(changed_course) > 0:
             d_print('{} that changed status'.format(changed_course))
@@ -77,18 +78,18 @@ class Course:
         for emitter in self.emitters:
             emitter.emit(changes)
 
-    def do_check(self):
-        self.cur_course = self.__parse_course(CourseMonitor.get_course_page(self.uid))
-        if self.prev_course:
+    def check(self):
+        self.prev_status = self.status
+        self.status = self.__update_course(CourseMonitor.get_course_page(self.uid))
+        if self.prev_status:
             self.__dispatch_emitters(self.__changes())
-        self.prev_course = self.cur_course
 
 
 class CourseMonitor:
     browser, sid, usr_name, passwd = None, None, None, None
 
     @staticmethod
-    def __course_link_builder(sid: str, uid: str):
+    def __course_link_builder(sid: str, uid: int):
         return 'https://utdirect.utexas.edu/apps/registrar/course_schedule/{}/{}/' \
             .format(sid, uid)
 
@@ -119,7 +120,7 @@ class CourseMonitor:
                'course search' in CourseMonitor.browser.title
 
     @staticmethod
-    def login(sid):
+    def login(sid: str):
         CourseMonitor.__goto_page("https://utdirect.utexas.edu/apps/registrar/course_schedule/{}/".format(sid))
 
     @staticmethod
@@ -134,5 +135,5 @@ class CourseMonitor:
         return CourseMonitor.browser
 
     @staticmethod
-    def get_course_page(uid: str):
+    def get_course_page(uid: int):
         return CourseMonitor.__goto_page(CourseMonitor.__course_link_builder(CourseMonitor.sid, uid)).page_source
