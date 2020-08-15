@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 
 from selenium.webdriver.support.wait import WebDriverWait
 
-debug = True
+debug = False
 
 
 def d_print(msg):
@@ -15,10 +15,17 @@ def d_print(msg):
 
 class Course:
 
-    def __init__(self, uid: str, emitters: []):
+    def __init__(self, uid: int, emitters: []):
         self.uid = uid
         self.emitters = emitters
         self.prev_course, self.cur_course = None, None
+        self.job = None
+
+    def __eq__(self, obj):
+        return isinstance(obj, Course) and obj.uid == self.uid
+
+    def __hash__(self):
+        return self.uid
 
     @staticmethod
     def __parse_course(browser_src: str) -> tuple:
@@ -36,11 +43,11 @@ class Course:
         if table:
             row = table.find('tbody').find('tr')
             header = soup.find("section", {"id": "details"}).find("h2")
-            course_code, _ = __parse_header(header.text)
+            course_code, title = __parse_header(header.text)
             # unique = row.find('td', {'data-th': 'Unique'}).text
             professor = row.find('td', {'data-th': 'Instructor'}).text
             status = row.find('td', {'data-th': 'Status'}).text
-            return course_code, professor, status
+            return course_code, title, professor, status
 
         else:
             raise Exception("Current page does not contain any course information")
@@ -49,9 +56,9 @@ class Course:
         """Get a dict of changed courses with old and new statuses"""
         changed_course = {}
 
-        (code, prof, status) = self.cur_course
+        (code, _, prof, status) = self.cur_course
 
-        (_, _, p_status) = self.prev_course
+        (_, _, _, p_status) = self.prev_course
 
         if p_status != status:
             changed_course[self.uid] = (code, prof, p_status, status)
@@ -108,7 +115,7 @@ class CourseMonitor:
                 # todo click send push notification if it is not clicked or it timed out
                 d_print('Please authorize on Duo')
 
-        return 'UT Austin Registrar:' in CourseMonitor.browser.title and\
+        return 'UT Austin Registrar:' in CourseMonitor.browser.title and \
                'course search' in CourseMonitor.browser.title
 
     @staticmethod

@@ -31,23 +31,34 @@ def init_browser(headless=False):
     return webdriver.Chrome(options=options)
 
 
-def create_courses(uids, emitters) -> []:
-    courses = []
+def create_courses(uids, emitters) -> {}:
+    courses = {}
     for uid in uids:
-        courses.append(Course(uid, emitters))
+        courses[uid] = Course(uid, emitters)
     return courses
 
 
-def add_courses_to_jobs(scheduler, courses: [Course], wait_time) -> []:
-    jobs = []
-    for course in courses:
-        jobs.append(scheduler.add_job(course.do_check,
-                                      'interval',
-                                      seconds=wait_time,
-                                      next_run_time=datetime.now(),
-                                      misfire_grace_time=wait_time,
-                                      coalesce=True))
-    return jobs
+def add_course_job(scheduler, course: Course, wait_time: int):
+    job = scheduler.add_job(course.do_check,
+                            'interval',
+                            seconds=wait_time,
+                            next_run_time=datetime.now(),
+                            misfire_grace_time=wait_time,
+                            id=str(course.uid),
+                            coalesce=True)
+    course.job = job
+    return job
+
+
+def remove_course_job(uid: int):
+    with courses.pop(uid) as c:
+        if c.job:
+            c.job.remove()
+
+
+def add_courses_to_jobs(scheduler, courses: {}, wait_time: int) -> []:
+    for course in courses.values():
+        add_course_job(scheduler, course, wait_time)
 
 
 def add_args(parser) -> None:
@@ -96,7 +107,7 @@ if __name__ == '__main__':
 
     load_dotenv(os.path.join('./', '.env'))
 
-    uids = [str(uid) for uid in args.uids]
+    uids = [uid for uid in args.uids]
     usr_name, passwd = (os.getenv('EID'), os.getenv('UT_PASS'))
     browser = init_browser(args.headless)
 
@@ -112,8 +123,45 @@ if __name__ == '__main__':
     courses = create_courses(uids, emitters)
 
     scheduler = BackgroundScheduler(daemon=True, executors={'default': ThreadPoolExecutor(1)})
-    jobs = add_courses_to_jobs(scheduler, courses, wait_time)
+    add_courses_to_jobs(scheduler, courses, wait_time)
     scheduler.start()
 
     while True:
-        time.sleep(5)  # todo use this space to allow command parsing
+        cmd = input()
+        tokens = cmd.split()
+        cmd = tokens[0].lower()
+
+        if cmd == 'list':
+            print('list of courses currently being run for')
+            for uid in courses:
+                course = courses[uid]
+                if course.cur_course:
+                    print('- {}: {} ({})'.format(course.cur_course[0], course.cur_course[1], course.uid))
+                else:
+                    print('- {}'.format(course.uid))
+
+        elif cmd == 'clear':
+            for uid in courses:
+                remove_course_job(uid)
+            print('cleared all courses')
+
+        elif cmd == 'add':
+            if not len(tokens) == 2:
+                print('error, invalid input')
+            else:
+                uid = int(tokens[1])
+                if uid in courses:
+                    continue
+                course = Course(uid, emitters)
+                courses[uid] = course
+                add_course_job(scheduler, course, wait_time)
+                print('added {}'.format(uid))
+        elif cmd == 'remove':
+            if not len(tokens) == 2:
+                print('error, invalid input')
+            else:
+                uid = int(tokens[1])
+                if uid not in courses:
+                    continue
+                remove_course_job(uid)
+                print('removed {}'.format(uid))
