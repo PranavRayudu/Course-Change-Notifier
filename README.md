@@ -16,7 +16,7 @@ This also requires user to accept Duo push everytime it starts up. Script will c
 
 #### 1. Setting up UT automatic login and Duo push notifications
 Create and add these to your ```.env``` file:
-```commandline
+```.env
 EID=<UT EID>
 UT_PASS=<UT systems password>
 ```
@@ -33,6 +33,15 @@ SLACK_TOKEN=<Bot User OAuth Access Token>
 SLACK_CHANNEL=<channel name>  # channel's name, simply whatever follows the '#' of desired channel
 ```
 otherwise, use the ConsoleEmitter (prints to console) by commenting out Slack's import statement and initializer.
+
+#### 4. Set up start and end times of day (optional)
+You can configure course checks to happen only during a specific time period of the day. To do so, add the following to your ``.env`` file
+By default, course checks will happen for the entire 24hrs of a day.
+```..env
+# all times are specified in military time with no separator between hours and minutes 
+START=1112 # start checking at 11:12am
+END=1803 # end checking at 6:03pm 
+```
 
 #### 3. Running the script
 To run the project, simply run ``python course-monitor.py --sem "Fall 2020" --uids <uid of course 1> <uid of course 2>...``

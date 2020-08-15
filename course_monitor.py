@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 
 from selenium.webdriver.support.wait import WebDriverWait
 
-debug = False
+debug = True
 
 
 def d_print(msg):
@@ -117,6 +117,10 @@ class CourseMonitor:
 
         return 'UT Austin Registrar:' in CourseMonitor.browser.title and \
                'course search' in CourseMonitor.browser.title
+
+    @staticmethod
+    def login(sid):
+        CourseMonitor.__goto_page("https://utdirect.utexas.edu/apps/registrar/course_schedule/{}/".format(sid))
 
     @staticmethod
     def __goto_page(link: str):

@@ -6,6 +6,9 @@ from datetime import datetime
 from dotenv import load_dotenv
 from selenium import webdriver
 
+from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.combining import OrTrigger
+from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -31,17 +34,43 @@ def init_browser(headless=False):
     return webdriver.Chrome(options=options)
 
 
-def create_courses(uids, emitters) -> {}:
+def create_courses(uids: [int], emitters: []) -> {}:
     courses = {}
     for uid in uids:
         courses[uid] = Course(uid, emitters)
     return courses
 
 
-def add_course_job(scheduler, course: Course, wait_time: int):
+def build_trigger(times: tuple):
+    start_time, end_time, wait_time = times
+
+    if start_time and end_time:
+        if start_time.hour == end_time.hour:
+            hours = [CronTrigger(hour=start_time.hour,
+                                 minute="{}-{}".format(start_time.minute, end_time.minute),
+                                 second="*/{}".format(wait_time))]
+        else:
+            hours = [
+                CronTrigger(hour=start_time.hour, minute="{}-59".format(start_time.minute),
+                            second="*/{}".format(wait_time)),
+                CronTrigger(hour=end_time.hour, minute="0-{}".format(end_time.minute),
+                            second="*/{}".format(wait_time))
+            ]
+            if start_time.hour + 1 < end_time.hour:
+                hours.append(CronTrigger(hour="{}-{}".format(start_time.hour + 1, end_time.hour - 1),
+                                         minute="0-59",
+                                         second="*/{}".format(wait_time)))
+    else:
+        hours = [IntervalTrigger(seconds=wait_time)]
+
+    return OrTrigger(hours)
+
+
+def add_course_job(scheduler: BackgroundScheduler, course: Course, times: tuple):
+    _, _, wait_time = times
+
     job = scheduler.add_job(course.do_check,
-                            'interval',
-                            seconds=wait_time,
+                            build_trigger(times),
                             next_run_time=datetime.now(),
                             misfire_grace_time=wait_time,
                             id=str(course.uid),
@@ -56,12 +85,17 @@ def remove_course_job(uid: int):
             c.job.remove()
 
 
-def add_courses_to_jobs(scheduler, courses: {}, wait_time: int) -> []:
+def add_courses_to_jobs(scheduler: BackgroundScheduler, courses: {}, times: tuple) -> []:
     for course in courses.values():
-        add_course_job(scheduler, course, wait_time)
+        add_course_job(scheduler, course, times)
 
 
-def add_args(parser) -> None:
+def clear_course_jobs(courses: {}):
+    for uid in courses:
+        remove_course_job(uid)
+
+
+def add_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('--sem', '-s',
                         metavar='semester',
                         type=str,
@@ -98,6 +132,45 @@ def build_emitters(sem_id: str) -> []:
     return emitters
 
 
+def parse_input(cmd):
+    tokens = cmd.split()
+    cmd = tokens[0].lower()
+
+    if cmd == 'list':
+        print('list of courses currently being run for')
+        for uid in courses:
+            course = courses[uid]
+            if course.cur_course:
+                print('- {}: {} ({})'.format(course.cur_course[0], course.cur_course[1], course.uid))
+            else:
+                print('- {}'.format(course.uid))
+
+    elif cmd == 'clear':
+        clear_course_jobs(courses)
+        print('cleared all courses')
+
+    elif cmd == 'add':
+        if not len(tokens) == 2:
+            print('error, invalid input')
+        else:
+            uid = int(tokens[1])
+            if uid in courses:
+                return
+            course = Course(uid, emitters)
+            courses[uid] = course
+            add_course_job(scheduler, course, (start_time, end_time, wait_time))
+            print('added {}'.format(uid))
+    elif cmd == 'remove':
+        if not len(tokens) == 2:
+            print('error, invalid input')
+        else:
+            uid = int(tokens[1])
+            if uid not in courses:
+                return
+            remove_course_job(uid)
+            print('removed {}'.format(uid))
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Monitor UT Course Schedule',
@@ -113,6 +186,10 @@ if __name__ == '__main__':
 
     sid = sem_code_builder(args.sem)
     emitters = build_emitters(sid)
+
+    start_time = datetime.strptime(os.getenv('START') or '0000', "%H%M").time()
+    end_time = datetime.strptime(os.getenv('END') or '2359', "%H%M").time()
+
     wait_time = int(args.period)
 
     CourseMonitor.browser = browser
@@ -123,45 +200,9 @@ if __name__ == '__main__':
     courses = create_courses(uids, emitters)
 
     scheduler = BackgroundScheduler(daemon=True, executors={'default': ThreadPoolExecutor(1)})
-    add_courses_to_jobs(scheduler, courses, wait_time)
+    scheduler.add_job(CourseMonitor.login, args=(sid,), id=str(sid))
+    add_courses_to_jobs(scheduler, courses, (start_time, end_time, wait_time))
     scheduler.start()
 
     while True:
-        cmd = input()
-        tokens = cmd.split()
-        cmd = tokens[0].lower()
-
-        if cmd == 'list':
-            print('list of courses currently being run for')
-            for uid in courses:
-                course = courses[uid]
-                if course.cur_course:
-                    print('- {}: {} ({})'.format(course.cur_course[0], course.cur_course[1], course.uid))
-                else:
-                    print('- {}'.format(course.uid))
-
-        elif cmd == 'clear':
-            for uid in courses:
-                remove_course_job(uid)
-            print('cleared all courses')
-
-        elif cmd == 'add':
-            if not len(tokens) == 2:
-                print('error, invalid input')
-            else:
-                uid = int(tokens[1])
-                if uid in courses:
-                    continue
-                course = Course(uid, emitters)
-                courses[uid] = course
-                add_course_job(scheduler, course, wait_time)
-                print('added {}'.format(uid))
-        elif cmd == 'remove':
-            if not len(tokens) == 2:
-                print('error, invalid input')
-            else:
-                uid = int(tokens[1])
-                if uid not in courses:
-                    continue
-                remove_course_job(uid)
-                print('removed {}'.format(uid))
+        parse_input(input())
