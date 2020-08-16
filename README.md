@@ -50,6 +50,7 @@ To run the project, simply run ``python course-monitor.py --sem "Fall 2020" --ui
 - The ``--uids`` or ``-u`` argument is optional and takes in a space separated list of course unique ids to keep track of.
 - The ``--period`` or ``-p`` argument is optional (180 by default) and specifies the time in seconds between consecutive course checks.
 - The ``--headless`` argument is optional (False by default) and runs the browser without any GUI. Enable this only when you have added your UT credentials to ``.env`` and configured Duo to automatically send a push.
+- The ``--verbose`` argument is optional (False by default) and shows debug print statements in the terminal. Enable this for debugging.
 
 #### 5. Editing list of courses during run
 Courses can be added while the script is running by entering ``add <uid>`` into the terminal. Similarly ``remove <uid>`` will stop that course from being tracked.
@@ -67,6 +68,7 @@ python course_monitor.py --sem "Fall 2020" --uids 37960 37965 37970 37975 --head
 - [x] Add support for multiple notification emitters
 - [x] Remove dependency on links
 - [ ] Allow dynamic scheduling and make server-ready
+- [ ] Integrate SAML auth into requests and remove Selenium dependency (get past Duo)?
 - [ ] (Dangerous) add automatic registration
 
 ## Contribution

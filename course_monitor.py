@@ -32,7 +32,7 @@ class Course:
     def __str__(self):
         if self.code and self.title:
             return "{}: {} ({})".format(self.code, self.title, self.uid)
-        return self.uid
+        return str(self.uid)
 
     def __update_course(self, browser_src: str) -> tuple:
 
