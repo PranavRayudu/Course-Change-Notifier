@@ -25,6 +25,10 @@ def init_browser(headless=False):
     options = webdriver.ChromeOptions()
     options.headless = headless
 
+    if os.getenv('FLASK_ENV') == 'production':
+        options.add_argument('--disable-gpu')
+        options.add_argument('--no-sandbox')
+
     if os.getenv('GOOGLE_CHROME_BIN'):
         options.binary_location = os.getenv('GOOGLE_CHROME_BIN')
     if os.getenv('CHROMEDRIVER_PATH'):
