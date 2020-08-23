@@ -46,8 +46,8 @@ class CourseMonitor:
                'course search' in CourseMonitor.browser.title
 
     @staticmethod
-    def login(sid: str):
-        CourseMonitor.__goto_page("https://utdirect.utexas.edu/apps/registrar/course_schedule/{}/".format(sid))
+    def login():
+        CourseMonitor.__goto_page("https://utdirect.utexas.edu/apps/registrar/course_schedule/{}/".format(CourseMonitor.sid))
 
     @staticmethod
     def __goto_page(link: str):

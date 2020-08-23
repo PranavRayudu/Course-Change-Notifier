@@ -31,10 +31,11 @@ def sem_code_builder(sem: str):
 def init_browser(headless=False):
     options = webdriver.ChromeOptions()
     options.headless = headless
-    if headless:
-        options.add_argument('--disable-gpu')
-        options.add_argument('--no-sandbox')
 
+    if os.getenv('GOOGLE_CHROME_BIN'):
+        options.binary_location = os.getenv('GOOGLE_CHROME_BIN')
+    if os.getenv('CHROMEDRIVER_PATH'):
+        return webdriver.Chrome(os.getenv('CHROMEDRIVER_PATH'), options=options)
     return webdriver.Chrome(options=options)
 
 
@@ -195,8 +196,8 @@ def init_monitor(sem, usr_name, passwd, headless=False):
     CourseMonitor.passwd = passwd
 
     scheduler = BackgroundScheduler(daemon=True, executors={'default': ThreadPoolExecutor(1)})
-    scheduler.add_job(CourseMonitor.login, args=(sid,), id=str(sid))
-    # CourseMonitor.login(sid)  # login pre-emptively before getting all course information
+    # scheduler.add_job(CourseMonitor.login, id=str(sid))
+    CourseMonitor.login()  # login pre-emptively before getting all course information
 
     return scheduler, emitters
 
