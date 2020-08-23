@@ -16,43 +16,54 @@ const tagColors = {
     'cancelled': grey.primary,
 }
 
-// todo query sem-id from server
-const columns = [
-    {
-        title: 'ID',
-        dataIndex: 'uid',
-        render: text => <a href={`https://utdirect.utexas.edu/apps/registrar/course_schedule/20209/${text}/`}>{text}</a>,
-    },
-    {
-        title: 'Abbr.',
-        dataIndex: 'abbr',
-    },
-    {
-        title: 'Title',
-        dataIndex: 'title',
-    },
-    {
-        title: 'Professor',
-        dataIndex: 'prof',
-    },
-    {
-        title: 'Status',
-        dataIndex: 'status',
-        render: text => <Tag color={tagColors[text]}>{text}</Tag>,
-    },
-];
 
 class Courses extends React.Component {
+
+    columns = [
+        {
+            title: 'ID',
+            dataIndex: 'uid',
+            render: text =>
+                <a href={`https://utdirect.utexas.edu/apps/registrar/course_schedule/${this.state.sid}/${text}/`}>{text}</a>,
+            // fixed: 'left'
+        },
+        {
+            title: 'Abbr.',
+            dataIndex: 'abbr',
+        },
+        {
+            title: 'Title',
+            dataIndex: 'title',
+        },
+        {
+            title: 'Professor',
+            dataIndex: 'prof',
+        },
+        {
+            title: 'Status',
+            dataIndex: 'status',
+            render: text => <Tag color={tagColors[text]}>{text}</Tag>,
+        },
+        {
+            title: 'Action',
+            dataIndex: 'uid',
+            render: text => <Button
+                href={`https://utdirect.utexas.edu/registration/registration.WBX?s_ccyys=${this.state.sid}&s_af_unique=${text}`}
+                htmlType={"a"} target="_blank">Register</Button>,
+        },
+    ];
 
     constructor(props) {
         super(props);
 
-        this.state = {refreshing: false, uid: '', data: [], selected: []}
+        this.state = {refreshing: false, uid: '', sid: '', data: [], selected: []}
         this.refreshData = this.refreshData.bind(this)
         this.handleSubmit = this.handleSubmit.bind(this)
     }
 
     componentDidMount() {
+        this.getSid()
+        this.refreshData()
         setInterval(this.refreshData, 1000 * 60 * 5) // every 5 min
     }
 
@@ -70,6 +81,16 @@ class Courses extends React.Component {
         this.setState({loading: false})
     }
 
+    getSid() {
+        fetch(`/api/v1/sid`, {
+            method: 'GET',
+        }).then(res => res.text()).then(data => {
+            this.setState({sid: data})
+        }).catch((err) => {
+            message.error('Unable to get semester info')
+        })
+    }
+
     refreshData() {
         this.startLoading()
 
@@ -83,7 +104,6 @@ class Courses extends React.Component {
             data.forEach(course => {
                 course.key = course.uid
             })
-
             this.setState({data: data})
         }).catch((err) => {
             message.error('Unable to refresh courses')
@@ -150,20 +170,19 @@ class Courses extends React.Component {
 
             <Space>
                 <Form onFinish={this.handleSubmit} layout={"inline"}>
-                    <Input.Group compact style={{maxWidth: "300px"}}>
+                    <Input.Group compact>
                         {/*<Form.Item name={"uid"} rules={[{required: true}]} style={{width: "50%"}}>*/}
                         <Input required
                                placeholder={"Course ID"}
                                pattern={"[0-9]{5}"}
                                value={this.state.uid}
                                onChange={e => this.setState({uid: e.target.value})}
-                               style={{width: "70%"}}
+                               style={{maxWidth: "100px"}}
                         />
                         {/*</Form.Item>*/}
                         {/*<Form.Item style={{width: "50%"}}>*/}
                         <Button type={"primary"}
-                                htmlType={'submit'}
-                                style={{width: "30%"}}>
+                                htmlType={'submit'}>
                             <span className={AppStyles.hideSm}>Add</span>
                             <PlusOutlined/>
                         </Button>
@@ -185,17 +204,19 @@ class Courses extends React.Component {
 
         return <Card bordered={false}>
             <Space direction={"vertical"} style={{width: "100%"}}>
+                {tableHeader}
                 <Table
                     rowSelection={{
                         type: "checkbox",
                         ...rowSelection
                     }}
-                    columns={columns}
+                    columns={this.columns}
                     dataSource={this.state.data}
                     loading={this.state.loading}
                     pagination={false}
+                    scroll={{ x: 700 }}
                     // bordered
-                    title={() => tableHeader}
+                    // title={() => tableHeader}
                 />
             </Space>
         </Card>;

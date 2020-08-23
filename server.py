@@ -1,5 +1,6 @@
 import os
 
+from course_monitor.course_monitor import CourseMonitor
 from course_monitor.courses_manager import add_course_job, remove_courses, remove_course, init_monitor, get_time, \
     add_course
 from flask import Flask, send_from_directory, Response
@@ -26,8 +27,17 @@ def api_home():
     return 'Welcome to UT Course Monitor API'
 
 
-@app.route(API + '/courses', methods=['GET'])
+@app.route(API + '/sid', methods=['GET'])
 def get_courses():
+    return Response(
+        mimetype="text/plain",
+        response=CourseMonitor.sid,
+        status=200
+    )
+
+
+@app.route(API + '/courses', methods=['GET'])
+def get_sid():
     return Response(
         mimetype="application/json",
         response=CourseEncoder().encode(list(courses.values())),

@@ -1,11 +1,8 @@
-import React, {useState} from 'react';
+import React from 'react';
 import {useLocation} from "react-router";
-import {
-    Switch,
-    Route,
-    Link,
-} from "react-router-dom";
+import {Switch, Route, Link,} from "react-router-dom";
 import {Layout, Menu} from "antd";
+import {SettingOutlined} from '@ant-design/icons';
 import Courses from "./components/Courses";
 import Settings from "./components/Settings";
 
@@ -26,13 +23,13 @@ function App() {
     const path = useLocation().pathname
     return (
         <Layout className={AppStyles.layout}>
-            <Header>
+            <Header className={AppStyles.titleBar}>
                 <h3 className={AppStyles.title}>UT Course Monitor Dashboard</h3>
             </Header>
 
             <Menu selectedKeys={path_key[path]} mode={"horizontal"} className={AppStyles.menu}>
                 <Menu.Item key={"courses"}><Link to={"/"}>Courses</Link></Menu.Item>
-                <Menu.Item key={"settings"}><Link to={"/settings"}>Settings</Link></Menu.Item>
+                <Menu.Item key={"settings"}><Link to={"/settings"}><SettingOutlined />Settings</Link></Menu.Item>
             </Menu>
 
             <Content className={AppStyles.container}>
@@ -44,7 +41,7 @@ function App() {
                 </div>
             </Content>
 
-            <Footer>
+            <Footer className={AppStyles.responsiveSm}>
                 UT Course Monitor by <a href={"https://pranavrayudu.netlify.app"}>Pranav Rayudu</a>
             </Footer>
         </Layout>
