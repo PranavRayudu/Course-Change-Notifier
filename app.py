@@ -1,6 +1,7 @@
 import os
 
-from main import init_monitor, get_time, add_course_job, remove_course, remove_courses
+from course_monitor.courses_manager import add_course_job, remove_courses, remove_course, init_monitor, get_time, \
+    add_course
 from flask import Flask, send_from_directory, Response
 from dotenv import load_dotenv
 
@@ -9,8 +10,9 @@ from course_monitor import course_monitor, course
 CourseEncoder = course.CourseEncoder
 Course = course.Course
 
-app = Flask(__name__, static_folder="client/build", static_url_path="")
 API = '/api/v1'
+
+app = Flask(__name__, static_folder="client/build", static_url_path="")
 
 courses = {}
 emitters = []
@@ -66,8 +68,7 @@ def create_course(uid: str):
             response="course id {} not valid or already exists".format(uid),
             status=500
         )
-    course = Course(uid, emitters)
-    courses[uid] = course
+    course = add_course(uid, emitters, courses)
     add_course_job(scheduler, course, (start_time, end_time, wait_time), jitter)
     return Response(
         mimetype="text/plain",

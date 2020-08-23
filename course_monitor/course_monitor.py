@@ -52,7 +52,6 @@ class CourseMonitor:
     @staticmethod
     def __goto_page(link: str):
         d_print('browser going to {}'.format(link))
-
         CourseMonitor.browser.get(link)
 
         # wait until user logs in and the courses can be seen
