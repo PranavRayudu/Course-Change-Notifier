@@ -15,9 +15,10 @@ API = '/api/v1'
 app = Flask(__name__, static_folder="client/build", static_url_path="")
 
 courses = {}
-emitters = []
-scheduler = None
-start_time, end_time, wait_time, jitter = None, None, 180, 10
+# emitters = []
+# scheduler = None
+# start_time, end_time = None, None
+wait_time, jitter = 180, 10
 
 
 @app.route(API)
@@ -105,20 +106,21 @@ def serve(path):
         return send_from_directory(app.static_folder, path)
 
 
+# if __name__ == '__main__':
+load_dotenv()
+
+scheduler, emitters = init_monitor(os.getenv('SEM'),
+                                   os.getenv('EID'),
+                                   os.getenv('UT_PASS'),
+                                   True)
+
+start_time, end_time = get_time(os.getenv('START')), get_time(os.getenv('END'))
+
+course_monitor.debug = True
+course.debug = True
+# wait_time = 180
+# jitter = 10
+
+scheduler.start()
 if __name__ == '__main__':
-    load_dotenv()
-
-    scheduler, emitters = init_monitor(os.getenv('SEM'),
-                                       os.getenv('EID'),
-                                       os.getenv('UT_PASS'),
-                                       True)
-
-    start_time, end_time = get_time(os.getenv('START')), get_time(os.getenv('END'))
-
-    course_monitor.debug = True
-    course.debug = True
-    wait_time = 180
-    jitter = 10
-
-    scheduler.start()
     app.run()
