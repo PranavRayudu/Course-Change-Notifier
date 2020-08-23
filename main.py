@@ -31,6 +31,9 @@ def sem_code_builder(sem: str):
 def init_browser(headless=False):
     options = webdriver.ChromeOptions()
     options.headless = headless
+    if headless:
+        options.add_argument('--disable-gpu')
+        options.add_argument('--no-sandbox')
 
     return webdriver.Chrome(options=options)
 
