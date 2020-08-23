@@ -202,12 +202,8 @@ def init_monitor(sem, usr_name, passwd, headless=False):
     return scheduler, emitters
 
 
-def get_start_end(start: str, end: str):
-    start_time, end_time = None, None
-    if start and end:
-        start_time = datetime.strptime(start, "%H%M").time()
-        end_time = datetime.strptime(end, "%H%M").time()
-    return start_time, end_time
+def get_time(time: str):
+    return datetime.strptime(time, "%H%M").time() if time else None
 
 
 if __name__ == '__main__':
@@ -220,12 +216,13 @@ if __name__ == '__main__':
     load_dotenv()
 
     uids = [uid for uid in args.uids if Course.valid_uid(uid)]
-    usr_name, passwd = (os.getenv('EID'), os.getenv('UT_PASS'))
 
     scheduler, emitters = init_monitor(args.sem or os.getenv('SEM'),
-                                       usr_name, passwd, args.headless)
+                                       os.getenv('EID'),
+                                       os.getenv('UT_PASS'),
+                                       args.headless)
 
-    start_time, end_time = get_start_end(os.getenv('START'), os.getenv('END'))
+    start_time, end_time = get_time(os.getenv('START')), get_time(os.getenv('END'))
 
     wait_time = int(args.period)
     course_monitor.debug = args.verbose

@@ -1,6 +1,6 @@
 import os
 
-from main import init_monitor, get_start_end, add_course_job, remove_course, remove_courses
+from main import init_monitor, get_time, add_course_job, remove_course, remove_courses
 from flask import Flask, send_from_directory, Response
 from dotenv import load_dotenv
 
@@ -13,6 +13,9 @@ app = Flask(__name__, static_folder="client/build", static_url_path="")
 API = '/api/v1'
 
 courses = {}
+emitters = []
+scheduler = None
+start_time, end_time, wait_time, jitter = None, None, 180, 10
 
 
 @app.route(API)
@@ -104,12 +107,12 @@ def serve(path):
 if __name__ == '__main__':
     load_dotenv()
 
-    usr_name, passwd = (os.getenv('EID'), os.getenv('UT_PASS'))
-
     scheduler, emitters = init_monitor(os.getenv('SEM'),
-                                       usr_name, passwd, True)
+                                       os.getenv('EID'),
+                                       os.getenv('UT_PASS'),
+                                       True)
 
-    start_time, end_time = get_start_end(os.getenv('START'), os.getenv('END'))
+    start_time, end_time = get_time(os.getenv('START')), get_time(os.getenv('END'))
 
     course_monitor.debug = True
     course.debug = True
