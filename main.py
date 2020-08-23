@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import os
 import argparse
 from datetime import datetime
@@ -8,11 +10,11 @@ from selenium import webdriver
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers.background import BackgroundScheduler
 
-import course_monitor
-from notification_emitter import SlackEmitter, ConsoleEmitter
+from course_monitor import course_monitor, course
+from course_monitor.notification_emitter import SlackEmitter, ConsoleEmitter
 
 CourseMonitor = course_monitor.CourseMonitor
-Course = course_monitor.Course
+Course = course.Course
 
 
 def sem_code_builder(sem: str):
@@ -40,7 +42,7 @@ def add_courses(uids: [int], emitters: []) -> {}:
     return courses
 
 
-def add_courses_to_jobs(scheduler: BackgroundScheduler, courses: {}, times: tuple, jitter=0) -> []:
+def add_courses_to_jobs(scheduler: BackgroundScheduler, courses: {}, times: (None, None, 180), jitter=0) -> []:
     for course in courses.values():
         add_course_job(scheduler, course, times, jitter)
 
@@ -70,13 +72,13 @@ def add_course_job(scheduler: BackgroundScheduler, course: Course, times: tuple,
 
 
 def remove_courses(courses: {}):
-    for uid in courses:
-        remove_course(uid)
+    for uid in list(courses.keys()):
+        remove_course(uid, courses)
 
 
-def remove_course(uid: int):
-    with courses.pop(uid) as c:
-        remove_course_job(c)
+def remove_course(uid: str, courses: {}):
+    if uid in courses:
+        remove_course_job(courses.pop(uid))
 
 
 def remove_courses_from_jobs(courses: {}):
@@ -156,8 +158,8 @@ def parse_input(cmd):
         if not len(tokens) == 2:
             print('error, invalid input')
         else:
-            uid = int(tokens[1])
-            if uid in courses:
+            uid = tokens[1]
+            if uid in courses or not Course.valid_uid(uid):
                 return
             course = Course(uid, emitters)
             courses[uid] = course
@@ -167,15 +169,41 @@ def parse_input(cmd):
         if not len(tokens) == 2:
             print('error, invalid input')
         else:
-            uid = int(tokens[1])
-            if uid not in courses:
+            uid = tokens[1]
+            if uid not in courses or not Course.valid_uid(uid):
                 return
-            remove_course(uid)
+            remove_course(uid, courses)
             print('removed {}'.format(uid))
     elif cmd == 'exit':
         exit()
     else:
         print('unknown command')
+
+
+def init_monitor(sem, usr_name, passwd, headless=False):
+    browser = init_browser(headless)
+
+    sid = sem_code_builder(sem)
+    emitters = build_emitters(sid)
+
+    CourseMonitor.browser = browser
+    CourseMonitor.sid = sid
+    CourseMonitor.usr_name = usr_name
+    CourseMonitor.passwd = passwd
+
+    scheduler = BackgroundScheduler(daemon=True, executors={'default': ThreadPoolExecutor(1)})
+    scheduler.add_job(CourseMonitor.login, args=(sid,), id=str(sid))
+    # CourseMonitor.login(sid)  # login pre-emptively before getting all course information
+
+    return scheduler, emitters
+
+
+def get_start_end(start: str, end: str):
+    start_time, end_time = None, None
+    if start and end:
+        start_time = datetime.strptime(start, "%H%M").time()
+        end_time = datetime.strptime(end, "%H%M").time()
+    return start_time, end_time
 
 
 if __name__ == '__main__':
@@ -187,32 +215,20 @@ if __name__ == '__main__':
 
     load_dotenv()
 
-    uids = [uid for uid in args.uids]
+    uids = [uid for uid in args.uids if Course.valid_uid(uid)]
     usr_name, passwd = (os.getenv('EID'), os.getenv('UT_PASS'))
-    browser = init_browser(args.headless)
 
-    sid = sem_code_builder(args.sem or os.getenv('SEM'))
-    emitters = build_emitters(sid)
+    scheduler, emitters = init_monitor(args.sem or os.getenv('SEM'),
+                                       usr_name, passwd, args.headless)
 
-    start_time, end_time = None, None
-    if os.getenv('START') and os.getenv('END'):
-        start_time = datetime.strptime(os.getenv('START'), "%H%M").time()
-        end_time = datetime.strptime(os.getenv('END'), "%H%M").time()
+    start_time, end_time = get_start_end(os.getenv('START'), os.getenv('END'))
 
     wait_time = int(args.period)
     course_monitor.debug = args.verbose
-
-    CourseMonitor.browser = browser
-    CourseMonitor.sid = sid
-    CourseMonitor.usr_name = usr_name
-    CourseMonitor.passwd = passwd
+    course.debug = args.verbose
 
     jitter = args.randomize
     courses = add_courses(uids, emitters)
-    # CourseMonitor.login(sid)  # login pre-emptively before getting all course information
-
-    scheduler = BackgroundScheduler(daemon=True, executors={'default': ThreadPoolExecutor(1)})
-    scheduler.add_job(CourseMonitor.login, args=(sid,), id=str(sid))
     add_courses_to_jobs(scheduler, courses, (start_time, end_time, wait_time), jitter)
     scheduler.start()
 

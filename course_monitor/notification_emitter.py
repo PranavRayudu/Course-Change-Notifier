@@ -6,8 +6,9 @@ statuses = [
     'reserved',
     'waitlisted',
     'waitlisted; reserved',
-    'cancelled',
-    'closed']
+    'closed',
+    'cancelled'
+]
 
 
 class NotificationEmitter:

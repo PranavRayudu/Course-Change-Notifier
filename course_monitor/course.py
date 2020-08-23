@@ -1,8 +1,10 @@
+import json
 import re
-import sys
+from json.encoder import JSONEncoder
+
 from bs4 import BeautifulSoup
 
-from selenium.webdriver.support.wait import WebDriverWait
+from course_monitor.course_monitor import CourseMonitor
 
 debug = False
 
@@ -13,9 +15,23 @@ def d_print(msg):
         print(msg)
 
 
+class CourseEncoder(JSONEncoder):
+
+    def default(self, obj):
+        if isinstance(obj, Course):
+            return {
+                "uid": obj.uid,
+                "abbr": obj.code,
+                "title": obj.title,
+                "prof": obj.prof,
+                "status": obj.status
+            }
+        return json.JSONEncoder.default(self, obj)
+
+
 class Course:
 
-    def __init__(self, uid: int, emitters: []):
+    def __init__(self, uid: str, emitters: []):
         self.uid = uid
         self.emitters = emitters
         self.code, self.title = None, None
@@ -23,16 +39,21 @@ class Course:
         self.prev_status, self.status = None, None
         self.job = None
 
+    @staticmethod
+    def valid_uid(uid: str):
+        uid = str(uid)
+        return uid.isdigit() and len(uid) == 5
+
     def __eq__(self, obj):
         return isinstance(obj, Course) and obj.uid == self.uid
 
     def __hash__(self):
-        return self.uid
+        return int(self.uid)
 
     def __str__(self):
         if self.code and self.title:
             return "{}: {} ({})".format(self.code, self.title, self.uid)
-        return str(self.uid)
+        return self.uid
 
     def __update_course(self, browser_src: str) -> tuple:
 
@@ -83,57 +104,3 @@ class Course:
         self.status = self.__update_course(CourseMonitor.get_course_page(self.uid))
         if self.prev_status:
             self.__dispatch_emitters(self.__changes())
-
-
-class CourseMonitor:
-    browser, sid, usr_name, passwd = None, None, None, None
-
-    @staticmethod
-    def __course_link_builder(sid: str, uid: int):
-        return 'https://utdirect.utexas.edu/apps/registrar/course_schedule/{}/{}/' \
-            .format(sid, uid)
-
-    @staticmethod
-    def __do_login_seq() -> bool:
-        if 'Sign in with your UT EID' in CourseMonitor.browser.title:
-            heading = CourseMonitor.browser.find_element_by_xpath("//div[@id='message']/h1").text
-
-            if 'Sign in with your UT EID' in heading:
-
-                if CourseMonitor.usr_name and CourseMonitor.passwd:
-                    username_field = CourseMonitor.browser.find_element_by_id('username')
-                    username_field.clear()
-                    username_field.send_keys(CourseMonitor.usr_name)
-
-                    password_field = CourseMonitor.browser.find_element_by_id('password')
-                    password_field.clear()
-                    password_field.send_keys(CourseMonitor.passwd)
-
-                    login_btn = CourseMonitor.browser.find_element_by_xpath("//input[@type='submit']")
-                    login_btn.click()
-
-            elif 'Multi-Factor Authentication Required' in heading:
-                # todo click send push notification if it is not clicked or it timed out
-                d_print('Please authorize on Duo')
-
-        return 'UT Austin Registrar:' in CourseMonitor.browser.title and \
-               'course search' in CourseMonitor.browser.title
-
-    @staticmethod
-    def login(sid: str):
-        CourseMonitor.__goto_page("https://utdirect.utexas.edu/apps/registrar/course_schedule/{}/".format(sid))
-
-    @staticmethod
-    def __goto_page(link: str):
-        d_print('browser going to {}'.format(link))
-
-        CourseMonitor.browser.get(link)
-
-        # wait until user logs in and the courses can be seen
-        WebDriverWait(CourseMonitor.browser, sys.maxsize).until(lambda x: CourseMonitor.__do_login_seq())
-
-        return CourseMonitor.browser
-
-    @staticmethod
-    def get_course_page(uid: int):
-        return CourseMonitor.__goto_page(CourseMonitor.__course_link_builder(CourseMonitor.sid, uid)).page_source
