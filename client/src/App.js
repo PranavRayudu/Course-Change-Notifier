@@ -1,4 +1,10 @@
 import React, {useState} from 'react';
+import {useLocation} from "react-router";
+import {
+    Switch,
+    Route,
+    Link,
+} from "react-router-dom";
 import {Layout, Menu} from "antd";
 import Courses from "./components/Courses";
 import Settings from "./components/Settings";
@@ -10,34 +16,31 @@ import AppStyles from './app.module.scss';
 
 const {Header, Footer, Content} = Layout;
 
+const path_key = {
+    "/": "courses",
+    "/settings": "settings"
+}
 
 function App() {
 
-    const [nav, setNav] = useState('courses');
-
-    let handleClick = e => {
-        setNav(e.key);
-    };
-
-    let routes = {
-        'courses': <Courses/>,
-        'settings': <Settings/>
-    }
-
+    const path = useLocation().pathname
     return (
         <Layout className={AppStyles.layout}>
             <Header>
                 <h3 className={AppStyles.title}>UT Course Monitor Dashboard</h3>
             </Header>
 
-            <Menu onClick={handleClick} selectedKeys={[nav]} mode={"horizontal"} className={AppStyles.menu}>
-                <Menu.Item key={"courses"}>Courses</Menu.Item>
-                <Menu.Item key={"settings"}>Settings</Menu.Item>
+            <Menu selectedKeys={path_key[path]} mode={"horizontal"} className={AppStyles.menu}>
+                <Menu.Item key={"courses"}><Link to={"/"}>Courses</Link></Menu.Item>
+                <Menu.Item key={"settings"}><Link to={"/settings"}>Settings</Link></Menu.Item>
             </Menu>
 
             <Content className={AppStyles.container}>
                 <div className={AppStyles.content}>
-                    {routes[nav]}
+                    <Switch>
+                        <Route path={"/"} component={Courses} exact/>
+                        <Route path={"/settings"} component={Settings}/>
+                    </Switch>
                 </div>
             </Content>
 
