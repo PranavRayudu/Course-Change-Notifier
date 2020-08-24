@@ -59,9 +59,11 @@ def parse_input(cmd):
     cmd = tokens[0].lower()
 
     if cmd == 'list':
-        print('list of courses currently being run for')
+        print('list of courses being checked')
         for uid in courses:
             print('- {}'.format(courses[uid]))
+
+        scheduler.print_jobs()
 
     elif cmd == 'clear':
         remove_courses(courses)

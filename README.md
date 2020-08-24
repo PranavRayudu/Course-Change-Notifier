@@ -44,8 +44,8 @@ START=1112 # start checking at 11:12am
 END=1803 # end checking at 6:03pm 
 ```
 
-#### 4. Running the script
-To run the project, simply run ``python course-monitor.py --sem "Fall 2020" --uids <uid of course 1> <uid of course 2>...``
+#### 4. Running the script (only for local.py - server.py is still experimental)
+To run the project, simply run ``python local.py --sem "Fall 2020" --uids <uid of course 1> <uid of course 2>...``
 - The ``--sem`` or ``-s`` arguments is required (unless specified in ``.env``) and specifies the semester to look for courses in. Must be in ``<Season> YYYY`` format.
 - The ``--uids`` or ``-u`` argument is optional and takes in a space separated list of course unique ids to keep track of.
 - The ``--period`` or ``-p`` argument is optional (180 by default) and specifies the time in seconds between consecutive course checks.
@@ -58,7 +58,7 @@ Courses can be added while the script is running by entering ``add <uid>`` into 
 
 Example usage
 ```commandline
-python course_monitor.py --sem "Fall 2020" --uids 37960 37965 37970 37975 --headless
+python local.py --sem "Fall 2020" --uids 37960 37965 37970 37975 --headless
 ```
 
 ## Todo
@@ -67,7 +67,7 @@ python course_monitor.py --sem "Fall 2020" --uids 37960 37965 37970 37975 --head
 - [x] Add automatic login to UT ID
 - [x] Add support for multiple notification emitters
 - [x] Remove dependency on links
-- [ ] Allow dynamic scheduling and make server-ready
+- [x] Allow dynamic scheduling and make server-ready
 - [ ] Integrate SAML auth into requests and remove Selenium dependency (get past Duo)?
 - [ ] (Dangerous) add automatic registration
 

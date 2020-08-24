@@ -38,6 +38,8 @@ class Course:
         self.prof = None
         self.prev_status, self.status = None, None
         self.job = None
+        self.start_job = None
+        self.end_job = None
 
     @staticmethod
     def valid_uid(uid: str):

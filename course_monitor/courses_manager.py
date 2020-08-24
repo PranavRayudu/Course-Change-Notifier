@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import datetime, timedelta, time
 
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -56,27 +56,58 @@ def add_courses_to_jobs(scheduler: BackgroundScheduler, courses: {}, times: (Non
 
 
 def add_course_job(scheduler: BackgroundScheduler, course: Course, times: tuple, jitter=0):
-    def get_today_times(start_time, end_time):
-        return datetime.combine(datetime.now(), start_time), datetime.combine(datetime.now(), end_time)
+    def get_course_job_ids(uid: str):
+        # job ids: <uid>-c (course check), <uid>-s (start course check), <uid>-e (end course check)
+        return '{}-c'.format(uid), '{}-s'.format(uid), '{}-e'.format(uid)
 
+    def is_time_between(begin_time=None, end_time=None):
+
+        if begin_time and end_time:
+            check_time = datetime.now().time()
+            if begin_time < end_time:
+                return begin_time <= check_time <= end_time
+            else:  # crosses midnight
+                return check_time >= begin_time or check_time <= end_time
+        return True
+
+    def next_datetime(time: time) -> datetime:
+        current = datetime.now()
+        repl = datetime.combine(current, time)
+        while repl <= current:
+            repl = repl + timedelta(days=1)
+        return repl
+
+    course_check_id, course_start_id, course_end_id = get_course_job_ids(course.uid)
     start_time, end_time, wait_time = times
-    # noinspection PyTypeChecker
-    job = scheduler.add_job(course.check,
-                            'interval',
-                            seconds=wait_time,
-                            next_run_time=datetime.now(),
-                            misfire_grace_time=None,
-                            id=str(course.uid),
-                            jitter=jitter,
-                            coalesce=True)
+
+    if is_time_between(start_time, end_time):
+        # noinspection PyTypeChecker
+        course.job = scheduler.add_job(
+            course.check,
+            'interval',
+            seconds=wait_time,
+            next_run_time=datetime.now(),
+            misfire_grace_time=None,
+            id=course_check_id,
+            jitter=jitter,
+            coalesce=True)
 
     if start_time and end_time:
-        start_date, end_date = get_today_times(start_time, end_time)
-        scheduler.add_job(remove_course_job, args=(course,), trigger='date', next_run_time=end_date)
-        scheduler.add_job(add_course_job, args=(scheduler, course, times, jitter), next_run_time=start_date)
-
-    course.job = job
-    return job
+        # start_date, end_date = get_today_times(start_time, end_time)
+        start_date, end_date = next_datetime(start_time), next_datetime(end_time)
+        course.start_job = scheduler.add_job(
+            add_course_job,
+            trigger='date',
+            args=(scheduler, course, times, jitter),
+            id=course_start_id,
+            run_date=start_date)
+        course.end_job = scheduler.add_job(
+            remove_course_job,
+            args=(course,),
+            trigger='date',
+            id=course_end_id,
+            run_date=end_date)
+    return course.job
 
 
 def remove_courses(courses: {}):
@@ -97,6 +128,13 @@ def remove_courses_from_jobs(courses: {}):
 def remove_course_job(course: Course):
     if course.job:
         course.job.remove()
+        course.job = None
+    if course.start_job:
+        course.start_job.remove()
+        course.start_job = None
+    if course.end_job:
+        course.end_job.remove()
+        course.end_job = None
 
 
 def build_emitters(sem_id: str) -> []:
