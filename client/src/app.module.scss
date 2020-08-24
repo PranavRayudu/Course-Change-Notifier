@@ -1,0 +1,94 @@
+$screen-sm-min: 576px;
+$screen-md-min: 768px;
+$screen-lg-min: 992px;
+$screen-xl-min: 1200px;
+
+// Small devices
+@mixin sm {
+  @media (max-width: #{$screen-sm-min}) {
+    @content;
+  }
+}
+
+// Medium devices
+@mixin md {
+  @media (max-width: #{$screen-md-min}) {
+    @content;
+  }
+}
+
+// Large devices
+@mixin lg {
+  @media (max-width: #{$screen-lg-min}) {
+    @content;
+  }
+}
+
+// Extra large devices
+@mixin xl {
+  @media (max-width: #{$screen-xl-min}) {
+    @content;
+  }
+}
+
+html, body, :global(#root) {
+  height: 100%;
+}
+
+.responsiveSm {
+  opacity: 1;
+  @include sm {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+}
+
+.titleBar {
+  .title {
+    color: white;
+  }
+
+  @extend .responsiveSm;
+}
+
+.menu {
+  padding: 0 30px !important;
+  @include sm {
+    padding: 0 !important;
+  }
+}
+
+.layout {
+  height: 100%;
+}
+
+.container {
+  margin: 24px 50px;
+
+  @include sm {
+    margin: 0;
+  }
+}
+
+.content {
+  max-width: 940px;
+  margin: auto;
+}
+
+.heading {
+  display: flex;
+  justify-content: space-between;
+
+  @include sm {
+    flex-direction: column;
+  }
+}
+
+.hideSm {
+  @include sm {
+    display: none !important;
+    & + span {
+      margin-left: 0 !important;
+    }
+  }
+}

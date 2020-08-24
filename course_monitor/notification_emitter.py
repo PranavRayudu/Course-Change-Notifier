@@ -6,41 +6,41 @@ statuses = [
     'reserved',
     'waitlisted',
     'waitlisted; reserved',
-    'cancelled',
-    'closed']
-
-
-def categorize_classes(classes: dict) -> (dict, dict):
-    """sort classes into closed and opened category and return 2 dicts with value (classname, old status, new status)"""
-    closed = {}
-    opened = {}
-
-    for uid, (code, prof, prev_state, new_state) in classes.items():
-        prev_severity = statuses.index(prev_state)
-        new_severity = statuses.index(new_state)
-
-        category = closed if new_severity > prev_severity else opened
-        category[uid] = (code, prof, prev_state, new_state)
-
-    return closed, opened
+    'closed',
+    'cancelled'
+]
 
 
 class NotificationEmitter:
+    @staticmethod
+    def __categorize_classes(classes: dict) -> (dict, dict):
+        """sort classes into closed and opened category"""
+        closed = {}
+        opened = {}
 
-    def dispatch_emit(self, closed_classes: dict, opened_classes: dict):
+        for uid, (code, prof, prev_state, new_state) in classes.items():
+            prev_severity = statuses.index(prev_state)
+            new_severity = statuses.index(new_state)
+
+            category = closed if new_severity > prev_severity else opened
+            category[uid] = (code, prof, prev_state, new_state)
+
+        return closed, opened
+
+    def __dispatch_emit(self, closed_classes: dict, opened_classes: dict):
         pass
 
     def emit(self, classes: dict):
         if len(classes) == 0:
             return
 
-        closed_classes, opened_classes = categorize_classes(classes)
-        self.dispatch_emit(closed_classes, opened_classes)
+        closed_classes, opened_classes = NotificationEmitter.__categorize_classes(classes)
+        self.__dispatch_emit(closed_classes, opened_classes)
 
 
 class ConsoleEmitter(NotificationEmitter):
 
-    def dispatch_emit(self, closed_classes: dict, opened_classes: dict):
+    def __dispatch_emit(self, closed_classes: dict, opened_classes: dict):
 
         if len(closed_classes) > 0:
             print('Here are the classes that closed up')
@@ -68,7 +68,8 @@ class SlackEmitter(NotificationEmitter):
             print("Unable to verify Slack API access")
             exit()
 
-    def build_closed_msg(self, closed_classes: dict) -> str:
+    @staticmethod
+    def __build_closed_msg(closed_classes: dict) -> str:
         """builds message text for classes that have closed up"""
 
         if len(closed_classes) == 0:
@@ -82,7 +83,7 @@ class SlackEmitter(NotificationEmitter):
 
         return msg
 
-    def build_opened_msg(self, opened_classes: dict) -> str:
+    def __build_opened_msg(self, opened_classes: dict) -> str:
         """builds message text for classes that opened up, along with registration links for each class"""
 
         if len(opened_classes) == 0:
@@ -100,7 +101,7 @@ class SlackEmitter(NotificationEmitter):
                '|here>.'.format(self.semester_code)
         return msg
 
-    def build_blocks(self, closed_classes: dict, opened_classes: dict) -> list:
+    def __build_blocks(self, closed_classes: dict, opened_classes: dict) -> list:
         """builds list of block sections with class info in markdown to send in Slack message"""
         blocks = []
 
@@ -109,7 +110,7 @@ class SlackEmitter(NotificationEmitter):
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": self.build_closed_msg(closed_classes)
+                    "text": self.__build_closed_msg(closed_classes)
                 }})
 
         if len(opened_classes) > 0:
@@ -117,21 +118,15 @@ class SlackEmitter(NotificationEmitter):
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": self.build_opened_msg(opened_classes)
+                    "text": self.__build_opened_msg(opened_classes)
                 }})
 
         return blocks
 
-    def dispatch_emit(self, closed_classes: dict, opened_classes: dict):
+    def __dispatch_emit(self, closed_classes: dict, opened_classes: dict):
         """sends message with closed and opened classes info via Slack client to channel specified in channel id"""
         if len(closed_classes) > 0 or len(opened_classes) > 0:
             return self.client.chat_postMessage(
                 channel=self.channel,
-                text='Some courses have changed status!',
-                blocks=self.build_blocks(closed_classes, opened_classes))
-
-
-def dispatch_all_emitters(emitters: [], classes: dict):
-    """send class change message on every emitter in emitters"""
-    for emitter in emitters:
-        emitter.emit(classes)
+                text='Some course(s) have changed status!',
+                blocks=self.__build_blocks(closed_classes, opened_classes))

@@ -3,7 +3,7 @@ Course Change Notifier is a simple script that allows users to run a course avai
 This requires Python 3.6+, Google Chrome, and Selenium Chrome drivers.
 
 ## Get Started
-```
+```.commandline
 git clone https://github.com/PranavRayudu/Course-Change-Notifier.git
 pip install -r requirements.txt
 ```
@@ -16,9 +16,10 @@ This also requires user to accept Duo push everytime it starts up. Script will c
 
 #### 1. Setting up UT automatic login and Duo push notifications
 Create and add these to your ```.env``` file:
-```commandline
+```.env
 EID=<UT EID>
 UT_PASS=<UT systems password>
+SEM=<Current Semester, ex: "Fall 2020" (with quotes)> # this is required unless you specify semester in arguments
 ```
 In Duo, set push notifications as your preferred method of signing in, so Duo will automatically send a push notification whenever you need to sign in. If you do not do this, you will have to manually click "Send push" whenever it reaches the two-factor authentication screen. Moreover, if you do not approve the push notification before a timeout, you will also have to manually click "Send push" again.
 
@@ -30,20 +31,34 @@ You must also have your bot added to the workspace and channel you want it to po
 To configure your project for Slack, and add the following data to your ```.env``` file
 ```.env
 SLACK_TOKEN=<Bot User OAuth Access Token>
-SLACK_CHANNEL_ID=<channel name>  # channel's name, simply whatever follows the '#' of desired channel
+SLACK_CHANNEL=<channel name>  # channel's name, simply whatever follows the '#' of desired channel
 ```
 otherwise, use the ConsoleEmitter (prints to console) by commenting out Slack's import statement and initializer.
 
-#### 3. Running the script
+#### 3. Set up start and end times of day (optional)
+You can configure course checks to happen only during a specific time period of the day. To do so, add the following to your ``.env`` file
+By default, course checks will happen for the entire 24hrs of a day.
+```..env
+# all times are specified in military time with no separator between hours and minutes 
+START=1112 # start checking at 11:12am
+END=1803 # end checking at 6:03pm 
+```
+
+#### 4. Running the script
 To run the project, simply run ``python course-monitor.py --sem "Fall 2020" --uids <uid of course 1> <uid of course 2>...``
-- The ``--sem`` or ``-s`` arguments specifies the semester to look for courses in. Must be in ``<Season> YYYY`` format.
-- The ``--uids`` or ``-u`` argument takes in a space separated list of course unique ids to keep track of.
-- The ``--debug`` or ``-d`` argument is optional (False by default) and enables printing data to the console. It is recommended you keep this on.
+- The ``--sem`` or ``-s`` arguments is required (unless specified in ``.env``) and specifies the semester to look for courses in. Must be in ``<Season> YYYY`` format.
+- The ``--uids`` or ``-u`` argument is optional and takes in a space separated list of course unique ids to keep track of.
+- The ``--period`` or ``-p`` argument is optional (180 by default) and specifies the time in seconds between consecutive course checks.
 - The ``--headless`` argument is optional (False by default) and runs the browser without any GUI. Enable this only when you have added your UT credentials to ``.env`` and configured Duo to automatically send a push.
+- The ``--verbose`` argument is optional (False by default) and shows debug print statements in the terminal. Enable this for debugging.
+
+#### 5. Editing list of courses during run
+Courses can be added while the script is running by entering ``add <uid>`` into the terminal. Similarly ``remove <uid>`` will stop that course from being tracked.
+``list`` will list all courses currently being tracked and ``clear`` will remove all courses from being tracked.  
 
 Example usage
 ```commandline
-python course_monitor.py --sem "Fall 2020" --uids 37960 37965 37970 37975 --debug --headless
+python course_monitor.py --sem "Fall 2020" --uids 37960 37965 37970 37975 --headless
 ```
 
 ## Todo
@@ -52,9 +67,10 @@ python course_monitor.py --sem "Fall 2020" --uids 37960 37965 37970 37975 --debu
 - [x] Add automatic login to UT ID
 - [x] Add support for multiple notification emitters
 - [x] Remove dependency on links
-- [ ] Allow loop scheduling and make server-ready
+- [ ] Allow dynamic scheduling and make server-ready
+- [ ] Integrate SAML auth into requests and remove Selenium dependency (get past Duo)?
 - [ ] (Dangerous) add automatic registration
 
 ## Contribution
 If you would like to add features/fix bugs, please fork and create a PR.
-If you would like to add your own notification method, simply extent the NotificationEmitter class and override the constructor and emit() function.
+If you would like to add your own notification method, simply extent the NotificationEmitter class and override the constructor and __dispatch_emit() function.
