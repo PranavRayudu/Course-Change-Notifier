@@ -40,7 +40,8 @@ class CourseMonitor:
 
             elif 'Multi-Factor Authentication Required' in heading:
                 # todo click send push notification if it is not clicked or it timed out
-                d_print('Please authorize on Duo')
+                # d_print('please authorize on Duo')
+                pass
 
         return 'UT Austin Registrar:' in CourseMonitor.browser.title and \
                'course search' in CourseMonitor.browser.title

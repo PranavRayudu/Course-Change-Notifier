@@ -120,8 +120,8 @@ def init_monitor(sem, usr_name, passwd, headless=False):
     CourseMonitor.passwd = passwd
 
     scheduler = BackgroundScheduler(daemon=True, executors={'default': ThreadPoolExecutor(1)})
-    # scheduler.add_job(CourseMonitor.login, id=str(sid))
-    CourseMonitor.login()  # login pre-emptively before getting all course information
+    scheduler.add_job(CourseMonitor.login, id=str(sid))
+    # CourseMonitor.login()  # login pre-emptively before getting all course information
 
     return scheduler, emitters
 

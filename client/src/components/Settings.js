@@ -19,7 +19,6 @@ function Settings() {
 
     return <Card bordered={false}>
         <Space direction={"vertical"} style={{width: "100%"}}>
-
             <div className={AppStyles.heading}>
                 <Space direction={"vertical"} style={{width: "100%"}}>
                     <h3>Global Monitor Settings</h3>
