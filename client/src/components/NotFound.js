@@ -1,12 +1,17 @@
 import React from 'react';
-import {Space, Card} from "antd";
+import {Result, Button} from "antd";
 
 function NotFound() {
-    return <Card bordered={false}>
-        <Space direction={"vertical"} style={{width: "100%"}}>
-            <h1 style={{textAlign: "center"}}>404 Page Not Found</h1>
-        </Space>
-    </Card>
+    return <div>
+        <Result
+            status="404"
+            title="404"
+            subTitle="Sorry, the page you visited does not exist."
+            extra={<><Button type="primary" href={"/"} htmlType={"a"}>Back Home</Button>
+            </>}
+
+        />
+    </div>
 }
 
 export default NotFound;

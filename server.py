@@ -9,6 +9,7 @@ from course_monitor.courses_manager import \
     add_course_job, remove_courses, remove_course, init_monitor, get_time, add_course
 from models import User
 
+CourseMonitor = course_monitor.CourseMonitor
 CourseEncoder = course.CourseEncoder
 Course = course.Course
 
@@ -26,7 +27,7 @@ usr_name, passwd = os.getenv('EID'), os.getenv('UT_PASS')
 scheduler, emitters = init_monitor(os.getenv('SEM'),
                                    os.getenv('EID'),
                                    os.getenv('UT_PASS'),
-                                   True)
+                                   os.getenv('FLASK_ENV') != 'development')
 
 start_time, end_time = get_time(os.getenv('START')), get_time(os.getenv('END'))
 users[usr_name] = User(usr_name, passwd)
@@ -40,9 +41,19 @@ def api_home():
     return 'Welcome to UT Course Monitor API'
 
 
-@app.route(API + '/courses', methods=['GET'])
+@app.route(API + '/sid', methods=['GET'])
 @login_required
 def get_sid():
+    return Response(
+        mimetype='text/plain',
+        response=str(CourseMonitor.sid),
+        status=200,
+    )
+
+
+@app.route(API + '/courses', methods=['GET'])
+@login_required
+def get_courses():
     return Response(
         mimetype='application/json',
         response=CourseEncoder().encode(list(courses.values())),
@@ -114,6 +125,21 @@ def remove_course_id(uid: str):
     )
 
 
+@app.route(API + '/logged_in', methods=['GET'])
+def browser_login_status():
+    browser_logged_in = CourseMonitor.logged_in() and not CourseMonitor.login_fail
+    return jsonify({'status': browser_logged_in})
+
+
+@app.route(API + '/logged_in', methods=['POST'])
+def browser_login_action():
+    scheduler.add_job(CourseMonitor.login, id=str(CourseMonitor.sid))
+    return Response(
+        mimetype='text/plain',
+        status=200,
+    )
+
+
 @login_manager.user_loader
 def load_user(user_id):
     return users[user_id]
@@ -164,4 +190,4 @@ def index(path):
 
 scheduler.start()
 if __name__ == '__main__':
-    app.run()
+    app.run(use_reloader=False)

@@ -59,7 +59,7 @@ html, body, :global(#root) {
 }
 
 .layout {
-  height: 100%;
+  min-height: 100% !important;
 }
 
 .container {
@@ -71,8 +71,9 @@ html, body, :global(#root) {
 }
 
 .content {
-  max-width: 940px;
-  margin: auto;
+  //max-width: 940px;
+  //margin: auto;
+  width: 100%;
 }
 
 .heading {

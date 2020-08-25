@@ -57,7 +57,7 @@ class Course:
             return "{}: {} ({})".format(self.code, self.title, self.uid)
         return self.uid
 
-    def __update_course(self, browser_src: str) -> tuple:
+    def __update_course(self, browser_src: str) -> str:
 
         def __parse_header(header: str) -> (str, str):
             """splits header text into its course code and name components"""
@@ -65,6 +65,9 @@ class Course:
             course_code = header_matches.group(1).strip() + ' ' + header_matches.group(2).strip()
             course_name = header_matches.group(3).strip()
             return course_code, course_name
+
+        if not browser_src:
+            return self.status
 
         soup = BeautifulSoup(browser_src, 'html.parser')
         table = soup.find('table', {'id': 'details_table'})

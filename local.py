@@ -88,6 +88,8 @@ def parse_input(cmd):
                 return
             remove_course(uid, courses)
             print('removed {}'.format(uid))
+    elif cmd == 'login':
+        scheduler.add_job(CourseMonitor.login, id=str(CourseMonitor.sid))
     elif cmd == 'exit':
         exit()
     else:

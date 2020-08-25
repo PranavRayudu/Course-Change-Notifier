@@ -1,11 +1,12 @@
 import React, {useEffect, useState} from 'react';
 import {Redirect, Switch, Route, Link, useLocation} from "react-router-dom";
-import {Layout, Menu, message} from "antd";
+import {Layout, Menu} from "antd";
 import {SettingOutlined} from '@ant-design/icons';
 import Courses from "./components/Courses";
 import Settings from "./components/Settings";
 import Login from "./components/Login";
 import NotFound from "./components/NotFound";
+import LoginNotification from "./components/LoginNotification";
 
 import '../node_modules/antd/dist/antd.css';
 // import '../node_modules/antd/dist/antd.dark.css';
@@ -61,14 +62,13 @@ function App() {
             </Menu>}
 
             <Content className={AppStyles.container}>
-                <div className={AppStyles.content}>
+                    <LoginNotification/>
                     <Switch>
                         {logged && <Route path={"/"} component={Courses} exact/>}
                         {logged && <Route path={"/settings"} component={Settings}/>}
                         {!logged && <Route path={"/login"} component={Login}/>}
                         {logged && <Route component={NotFound}/>}
                     </Switch>
-                </div>
             </Content>
 
             <Footer className={AppStyles.responsiveSm}>
