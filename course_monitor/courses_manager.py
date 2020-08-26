@@ -91,6 +91,8 @@ def add_course_job(scheduler: BackgroundScheduler, course: Course, times: tuple,
             id=course_check_id,
             jitter=jitter,
             coalesce=True)
+        if course.paused:
+            course.job.pause()
 
     if start_time and end_time:
         # start_date, end_date = get_today_times(start_time, end_time)

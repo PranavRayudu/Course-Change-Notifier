@@ -1,6 +1,6 @@
 import React from 'react';
 import {message, Card, Tag, Button, Form, Input, Space, Table} from "antd";
-import {PlusOutlined, DeleteOutlined, ReloadOutlined} from '@ant-design/icons';
+import {PlusOutlined, DeleteOutlined, ReloadOutlined, PauseOutlined, CaretRightOutlined} from '@ant-design/icons';
 import {red, yellow, green, grey} from '@ant-design/colors';
 import Pluralize from "./Pluralize";
 import AppStyles from "../app.module.scss";
@@ -25,7 +25,8 @@ class Courses extends React.Component {
             dataIndex: 'uid',
             render: text =>
                 <a href={`https://utdirect.utexas.edu/apps/registrar/course_schedule/${this.state.sid}/${text}/`}>{text}</a>,
-            // fixed: 'left'
+            sorter: (a, b) => a.uid.localeCompare(b.uid),
+            sortDirections: ['descend', 'ascend'],
         },
         {
             title: 'Abbr.',
@@ -43,6 +44,13 @@ class Courses extends React.Component {
             title: 'Status',
             dataIndex: 'status',
             render: text => <Tag color={tagColors[text]}>{text}</Tag>,
+        },
+        {
+            title: 'Control',
+            dataIndex: 'paused',
+            render: (text, row) => text ?
+                <Button type={"dashed"} icon={<CaretRightOutlined/>} onClick={() => this.resumeCourse(row.uid)}/> :
+                <Button type={"dashed"} icon={<PauseOutlined/>} onClick={() => this.pauseCourse(row.uid)}/>,
         },
         {
             title: 'Action',
@@ -147,6 +155,28 @@ class Courses extends React.Component {
     }
 
 
+    pauseCourse(uid) {
+        this.startLoading()
+        fetch(`/api/v1/course/${uid}/pause?status=true`, {
+            method: 'POST',
+        }).then(() => this.refreshData())
+            .catch((err) => {
+                message.error('Unable to pause course')
+            })
+            .finally(() => this.endLoading())
+    }
+
+    resumeCourse(uid) {
+        this.startLoading()
+        fetch(`/api/v1/course/${uid}/pause?status=false`, {
+            method: 'POST',
+        }).then(() => this.refreshData())
+            .catch((err) => {
+                message.error('Unable to pause course')
+            })
+            .finally(() => this.endLoading())
+    }
+
     render() {
 
         // rowSelection object indicates the need for row selection
@@ -214,7 +244,7 @@ class Courses extends React.Component {
                     dataSource={this.state.data}
                     loading={this.state.loading}
                     pagination={false}
-                    scroll={{ x: 700 }}
+                    scroll={{x: 700}}
                     // bordered
                     // title={() => tableHeader}
                 />

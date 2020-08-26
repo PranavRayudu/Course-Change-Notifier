@@ -125,6 +125,24 @@ def remove_course_id(uid: str):
     )
 
 
+@app.route(API + '/course/<uid>/pause', methods=['POST'])
+@login_required
+def pause_course(uid: str):
+    if not Course.valid_uid(uid) or uid not in courses:
+        return Response(
+            mimetype='text/plain',
+            response='course id {} not valid or not found'.format(uid),
+            status=400 if Course.valid_uid(uid) else 404,
+        )
+    course = courses[uid]
+    if request.values['status'] == 'true':
+        course.pause_job()
+    if request.values['status'] == 'false':
+        course.resume_job()
+
+    return jsonify({'status': course.paused})
+
+
 @app.route(API + '/logged_in', methods=['GET'])
 def browser_login_status():
     browser_logged_in = CourseMonitor.logged_in() and not CourseMonitor.login_fail

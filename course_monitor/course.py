@@ -24,7 +24,8 @@ class CourseEncoder(JSONEncoder):
                 "abbr": obj.code,
                 "title": obj.title,
                 "prof": obj.prof,
-                "status": obj.status
+                "status": obj.status,
+                "paused": obj.paused
             }
         return json.JSONEncoder.default(self, obj)
 
@@ -37,6 +38,7 @@ class Course:
         self.code, self.title = None, None
         self.prof = None
         self.prev_status, self.status = None, None
+        self.paused = False
         self.job = None
         self.start_job = None
         self.end_job = None
@@ -109,3 +111,13 @@ class Course:
         self.status = self.__update_course(CourseMonitor.get_course_page(self.uid))
         if self.prev_status:
             self.__dispatch_emitters(self.__changes())
+
+    def pause_job(self):
+        if self.job:
+            self.job.pause()
+        self.paused = True
+
+    def resume_job(self):
+        if self.job:
+            self.job.resume()
+        self.paused = False

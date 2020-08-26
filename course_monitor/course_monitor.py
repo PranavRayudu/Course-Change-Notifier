@@ -1,4 +1,4 @@
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
 from selenium.webdriver.support.wait import WebDriverWait
 
 debug = False
@@ -52,37 +52,40 @@ class CourseMonitor:
             elif 'Multi-Factor Authentication Required' in heading:
 
                 iframe = browser.find_element_by_id('duo_iframe')
-                browser.switch_to.frame(iframe)
-                messages = browser.find_elements_by_xpath(
-                    "//div[@id='messages-view']"
-                    "/div[@class='messages-list']"
-                    "/div")
 
-                push_active = False
-                for message in messages:
-                    if message.get_attribute('aria-hidden') == 'true':
-                        continue
-                    if 'info' in message.get_attribute('class'):
-                        push_active = 'Pushed a login request to your device...' in message.text
-                        break
-                    if 'error' in message.get_attribute('class'):
-                        CourseMonitor.login_fail = True
-                        break
+                try:
+                    browser.switch_to.frame(iframe)
+                    messages = browser.find_elements_by_xpath(
+                        "//div[@id='messages-view']"
+                        "/div[@class='messages-list']"
+                        "/div")
 
-                if not push_active and not CourseMonitor.login_fail:
+                    push_active = False
+                    for message in messages:
+                        if message.get_attribute('aria-hidden') == 'true':
+                            continue
+                        if 'info' in message.get_attribute('class'):
+                            push_active = 'Pushed a login request to your device...' in message.text
+                            break
+                        if 'error' in message.get_attribute('class'):
+                            CourseMonitor.login_fail = True
+                            break
 
-                    remember_me = browser.find_element_by_xpath(
-                        "//div[@class='stay-logged-in']"
-                        "/label[@class='remember_me_label_field']"
-                        "/input[@type='checkbox']")
+                    if not push_active and not CourseMonitor.login_fail:
 
-                    if not remember_me.is_selected():
-                        remember_me.click()
+                        remember_me = browser.find_element_by_xpath(
+                            "//div[@class='stay-logged-in']"
+                            "/label[@class='remember_me_label_field']"
+                            "/input[@type='checkbox']")
 
-                    # send push button
-                    browser.find_element_by_xpath(
-                        "(//button[contains(@class, 'auth-button')])[1]").click()
+                        if not remember_me.is_selected():
+                            remember_me.click()
 
+                        # send push button
+                        browser.find_element_by_xpath(
+                            "(//button[contains(@class, 'auth-button')])[1]").click()
+                except StaleElementReferenceException:
+                    pass  # in case the frame changed, to prevent error
                 browser.switch_to.default_content()
 
         return CourseMonitor.logged_in()

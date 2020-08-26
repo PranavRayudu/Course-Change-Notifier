@@ -10,7 +10,7 @@ class JobState:
         scheduler.add_listener(self.job_finished, EVENT_JOB_EXECUTED | EVENT_JOB_ERROR)
 
     def job_finished(self, event):
-        if not event.exception and event.job_id == self.job_id:
+        if event.job_id == self.job_id:
             self.finished = True
 
     def wait_done(self):

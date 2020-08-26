@@ -69,6 +69,7 @@ def parse_input(cmd):
         remove_courses(courses)
         print('cleared all courses')
 
+    # fixme unsanitary repetitive precondition checking
     elif cmd == 'add':
         if not len(tokens) == 2:
             print('error, invalid input')
@@ -88,6 +89,24 @@ def parse_input(cmd):
                 return
             remove_course(uid, courses)
             print('removed {}'.format(uid))
+    elif cmd == 'pause':
+        if not len(tokens) == 2:
+            print('error, invalid input')
+        else:
+            uid = tokens[1]
+            if uid not in courses or not Course.valid_uid(uid):
+                return
+            course = courses[uid]
+            course.resume_job()
+    elif cmd == 'resume':
+        if not len(tokens) == 2:
+            print('error, invalid input')
+        else:
+            uid = tokens[1]
+            if uid not in courses or not Course.valid_uid(uid):
+                return
+            course = courses[uid]
+            course.pause_job(course)
     elif cmd == 'login':
         scheduler.add_job(CourseMonitor.login, id=str(CourseMonitor.sid))
     elif cmd == 'exit':
