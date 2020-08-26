@@ -4,9 +4,9 @@ import {Layout, Menu} from "antd";
 import {SettingOutlined} from '@ant-design/icons';
 import Courses from "./components/Courses";
 import Settings from "./components/Settings";
-import Login from "./components/Login";
+import UserLogin from "./components/UserLogin";
 import NotFound from "./components/NotFound";
-import LoginNotification from "./components/LoginNotification";
+import BrowserLogin from "./components/BrowserLogin";
 
 import '../node_modules/antd/dist/antd.css';
 // import '../node_modules/antd/dist/antd.dark.css';
@@ -30,7 +30,7 @@ function App() {
         fetch(`/api/v1/login_status`, {
             method: 'GET',
         }).then(res => res.json()).then(data => {
-            if (data.status) {
+            if (data.user) {
                 setLogged(true)
                 if (path === '/login')
                     setRedir('/')
@@ -58,11 +58,11 @@ function App() {
             </Menu>}
 
             <Content className={AppStyles.container}>
-                {logged && <LoginNotification/>}
+                {logged && <BrowserLogin/>}
                 <Switch>
                     {logged && <Route path={"/"} component={Courses} exact/>}
                     {logged && <Route path={"/settings"} component={Settings}/>}
-                    {!logged && <Route path={"/login"} component={Login}/>}
+                    {!logged && <Route path={"/login"} component={UserLogin}/>}
                     {logged && <Route component={NotFound}/>}
                 </Switch>
             </Content>

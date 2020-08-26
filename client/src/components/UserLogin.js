@@ -12,7 +12,7 @@ const tailLayout = {
     wrapperCol: {offset: 8, span: 16},
 }
 
-function Login() {
+function UserLogin() {
 
     const [redirect, setRedirect] = useState(null)
 
@@ -58,6 +58,6 @@ function Login() {
     </Card>;
 }
 
-export default Login;
+export default UserLogin;
 
 

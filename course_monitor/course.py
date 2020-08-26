@@ -1,10 +1,10 @@
 import json
 import re
-from json.encoder import JSONEncoder
 
 from bs4 import BeautifulSoup
+from json.encoder import JSONEncoder
 
-from course_monitor.course_monitor import CourseMonitor
+# from course_monitor import Monitor
 
 debug = False
 
@@ -24,13 +24,14 @@ class CourseEncoder(JSONEncoder):
                 "abbr": obj.code,
                 "title": obj.title,
                 "prof": obj.prof,
-                "status": obj.status,
+                "status":  obj.status if obj.valid else 'invalid',
                 "paused": obj.paused
             }
         return json.JSONEncoder.default(self, obj)
 
 
 class Course:
+    Monitor = None
 
     def __init__(self, uid: str, emitters: []):
         self.uid = uid
@@ -39,14 +40,10 @@ class Course:
         self.prof = None
         self.prev_status, self.status = None, None
         self.paused = False
+        self.valid = True
         self.job = None
         self.start_job = None
         self.end_job = None
-
-    @staticmethod
-    def valid_uid(uid: str):
-        uid = str(uid)
-        return uid.isdigit() and len(uid) == 5
 
     def __eq__(self, obj):
         return isinstance(obj, Course) and obj.uid == self.uid
@@ -81,9 +78,10 @@ class Course:
             # unique = row.find('td', {'data-th': 'Unique'}).text
             self.prof = row.find('td', {'data-th': 'Instructor'}).text
             self.status = row.find('td', {'data-th': 'Status'}).text
-            return self.status
         else:
-            raise Exception("Current page does not contain any course information")
+            self.valid = False
+
+        return self.status
 
     def __changes(self) -> dict:
         """Get a dict of changed courses with old and new statuses"""
@@ -107,8 +105,11 @@ class Course:
             emitter.emit(changes)
 
     def check(self):
+        if not self.valid:
+            return
+
         self.prev_status = self.status
-        self.status = self.__update_course(CourseMonitor.get_course_page(self.uid))
+        self.status = self.__update_course(Course.Monitor.get_course_page(self.uid))
         if self.prev_status:
             self.__dispatch_emitters(self.__changes())
 

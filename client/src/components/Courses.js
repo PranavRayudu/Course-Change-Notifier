@@ -14,6 +14,7 @@ const tagColors = {
     'waitlisted; reserved': yellow.primary,
     'closed': red.primary,
     'cancelled': grey.primary,
+    'invalid': grey.primary,
 }
 
 
@@ -23,7 +24,8 @@ class Courses extends React.Component {
         {
             title: 'ID',
             dataIndex: 'uid',
-            render: text =>
+            render: (text, row) =>
+                row.status === 'invalid' ? text :
                 <a href={`https://utdirect.utexas.edu/apps/registrar/course_schedule/${this.state.sid}/${text}/`}>{text}</a>,
             sorter: (a, b) => a.uid.localeCompare(b.uid),
             sortDirections: ['descend', 'ascend'],
@@ -31,14 +33,17 @@ class Courses extends React.Component {
         {
             title: 'Abbr.',
             dataIndex: 'abbr',
+            render: text => text ? text : '...',
         },
         {
             title: 'Title',
             dataIndex: 'title',
+            render: text => text ? text : '...',
         },
         {
             title: 'Professor',
             dataIndex: 'prof',
+            render: text => text ? text : '...',
         },
         {
             title: 'Status',
@@ -46,16 +51,20 @@ class Courses extends React.Component {
             render: text => <Tag color={tagColors[text]}>{text}</Tag>,
         },
         {
-            title: 'Control',
+            // title: 'Control',
             dataIndex: 'paused',
             render: (text, row) => text ?
-                <Button type={"dashed"} icon={<CaretRightOutlined/>} onClick={() => this.resumeCourse(row.uid)}/> :
-                <Button type={"dashed"} icon={<PauseOutlined/>} onClick={() => this.pauseCourse(row.uid)}/>,
+                <Button type={"dashed"} icon={<CaretRightOutlined/>}
+                        disabled={row.status === 'invalid'}
+                        onClick={() => this.resumeCourse(row.uid)}/> :
+                <Button type={"dashed"} icon={<PauseOutlined/>}
+                        disabled={row.status === 'invalid'}
+                        onClick={() => this.pauseCourse(row.uid)}/>,
         },
         {
-            title: 'Action',
+            // title: 'Action',
             dataIndex: 'uid',
-            render: text => <a
+            render: (text, row) => row.status !== 'invalid' && <a
                 href={`https://utdirect.utexas.edu/registration/registration.WBX?s_ccyys=${this.state.sid}&s_af_unique=${text}`}
                 target="_blank" rel="noopener noreferrer">Register</a>,
         },
@@ -90,10 +99,10 @@ class Courses extends React.Component {
     }
 
     getSid() {
-        fetch(`/api/v1/sid`, {
+        fetch(`/api/v1/config`, {
             method: 'GET',
-        }).then(res => res.text()).then(data => {
-            this.setState({sid: data})
+        }).then(res => res.json()).then(data => {
+            this.setState({sid: data.sid})
         }).catch((err) => {
             message.error('Unable to get semester info')
         })
@@ -120,7 +129,7 @@ class Courses extends React.Component {
 
     addCourse(uid) {
         this.startLoading()
-        fetch(`/api/v1/course/${uid}`, {
+        fetch(`/api/v1/courses/${uid}`, {
             method: 'POST',
             headers: {
                 'Accept': 'text/plain',
@@ -137,7 +146,7 @@ class Courses extends React.Component {
         this.startLoading()
         let fetches = []
         courses.forEach(course => {
-            fetches.push(fetch(`/api/v1/course/${course.uid}`, {
+            fetches.push(fetch(`/api/v1/courses/${course.uid}`, {
                 method: 'DELETE',
                 headers: {
                     'Accept': 'text/plain',
@@ -157,7 +166,7 @@ class Courses extends React.Component {
 
     pauseCourse(uid) {
         this.startLoading()
-        fetch(`/api/v1/course/${uid}/pause?status=true`, {
+        fetch(`/api/v1/courses/${uid}/pause?status=true`, {
             method: 'POST',
         }).then(() => this.refreshData())
             .catch((err) => {
@@ -168,7 +177,7 @@ class Courses extends React.Component {
 
     resumeCourse(uid) {
         this.startLoading()
-        fetch(`/api/v1/course/${uid}/pause?status=false`, {
+        fetch(`/api/v1/courses/${uid}/pause?status=false`, {
             method: 'POST',
         }).then(() => this.refreshData())
             .catch((err) => {

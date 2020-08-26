@@ -1,13 +1,11 @@
 import os
 from datetime import datetime, timedelta, time
 
+from selenium import webdriver
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers.background import BackgroundScheduler
-from selenium import webdriver
 
-from course_monitor.course import Course
-from course_monitor.course_monitor import CourseMonitor
-from course_monitor.notification_emitter import ConsoleEmitter, SlackEmitter
+from course_monitor import Course, Monitor, ConsoleEmitter, SlackEmitter
 
 
 def build_sem_code(sem: str):
@@ -154,10 +152,10 @@ def init_monitor(sem, usr_name, passwd, headless=False):
     sid = build_sem_code(sem)
     emitters = build_emitters(sid)
 
-    CourseMonitor.browser = browser
-    CourseMonitor.sid = sid
-    CourseMonitor.usr_name = usr_name
-    CourseMonitor.passwd = passwd
+    Monitor.browser = browser
+    Monitor.sid = sid
+    Monitor.usr_name = usr_name
+    Monitor.passwd = passwd
 
     scheduler = BackgroundScheduler(daemon=True, executors={'default': ThreadPoolExecutor(1)})
     # scheduler.add_job(CourseMonitor.login, id=str(sid))
@@ -168,3 +166,8 @@ def init_monitor(sem, usr_name, passwd, headless=False):
 
 def get_time(time: str):
     return datetime.strptime(time, "%H%M").time() if time else None
+
+
+def valid_uid(uid: str):
+    uid = str(uid)
+    return uid.isdigit() and len(uid) == 5

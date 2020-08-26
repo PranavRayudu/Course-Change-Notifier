@@ -1,17 +1,17 @@
 import React, {useEffect, useState} from 'react';
 import {message, Modal} from "antd";
 
-function LoginNotification() {
+function BrowserLogin() {
 
     const [failed, setFailed] = useState(false)
     const [loading, setLoading] = useState(false)
 
     useEffect(() => {
         setLoading(true)
-        fetch(`/api/v1/logged_in`, {
+        fetch(`/api/v1/login_status`, {
             method: 'GET',
         }).then(res => res.json()).then(data => {
-            setFailed(!data.status)
+            setFailed(!data.browser)
         }).catch((err) => {
             setFailed(true)
         }).finally(() => setLoading(false))
@@ -19,7 +19,7 @@ function LoginNotification() {
 
     const sendLogin = () => {
         setLoading(true)
-        fetch(`/api/v1/logged_in`, {
+        fetch(`/api/v1/browser_login`, {
             method: 'POST',
         }).then(res => res.json()).then(data => {
             if (data.status) message.success('login successful')
@@ -43,6 +43,6 @@ function LoginNotification() {
     </Modal>
 }
 
-export default LoginNotification;
+export default BrowserLogin;
 
 

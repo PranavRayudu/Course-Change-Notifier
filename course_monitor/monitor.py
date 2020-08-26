@@ -10,7 +10,7 @@ def d_print(msg):
         print(msg)
 
 
-class CourseMonitor:
+class Monitor:
     browser, sid, usr_name, passwd = None, None, None, None
     login_fail = False
 
@@ -21,30 +21,30 @@ class CourseMonitor:
 
     @staticmethod
     def logged_in() -> bool:
-        return 'UT Austin Registrar:' in CourseMonitor.browser.title and \
-               'course search' in CourseMonitor.browser.title
+        return 'UT Austin Registrar:' in Monitor.browser.title and \
+               'course search' in Monitor.browser.title
 
     @staticmethod
     def __do_login_seq() -> bool:
 
-        if CourseMonitor.login_fail:
+        if Monitor.login_fail:
             return False
 
-        browser = CourseMonitor.browser
+        browser = Monitor.browser
         if 'Sign in with your UT EID' in browser.title:
 
             heading = browser.find_element_by_xpath("//div[@id='message']/h1").text
 
             if 'Sign in with your UT EID' in heading:
 
-                if CourseMonitor.usr_name and CourseMonitor.passwd:
+                if Monitor.usr_name and Monitor.passwd:
                     username_field = browser.find_element_by_id('username')
                     username_field.clear()
-                    username_field.send_keys(CourseMonitor.usr_name)
+                    username_field.send_keys(Monitor.usr_name)
 
                     password_field = browser.find_element_by_id('password')
                     password_field.clear()
-                    password_field.send_keys(CourseMonitor.passwd)
+                    password_field.send_keys(Monitor.passwd)
 
                     login_btn = browser.find_element_by_xpath("//input[@type='submit']")
                     login_btn.click()
@@ -68,10 +68,10 @@ class CourseMonitor:
                             push_active = 'Pushed a login request to your device...' in message.text
                             break
                         if 'error' in message.get_attribute('class'):
-                            CourseMonitor.login_fail = True
+                            Monitor.login_fail = True
                             break
 
-                    if not push_active and not CourseMonitor.login_fail:
+                    if not push_active and not Monitor.login_fail:
 
                         remember_me = browser.find_element_by_xpath(
                             "//div[@class='stay-logged-in']"
@@ -88,32 +88,32 @@ class CourseMonitor:
                     pass  # in case the frame changed, to prevent error
                 browser.switch_to.default_content()
 
-        return CourseMonitor.logged_in()
+        return Monitor.logged_in()
 
     @staticmethod
     def login():
-        CourseMonitor.login_fail = False  # method acts as a reset for manual login
-        CourseMonitor.__goto_page("https://utdirect.utexas.edu/apps/registrar/course_schedule/{}/"
-                                  .format(CourseMonitor.sid))
-        return CourseMonitor.logged_in()
+        Monitor.login_fail = False  # method acts as a reset for manual login
+        Monitor.__goto_page("https://utdirect.utexas.edu/apps/registrar/course_schedule/{}/"
+                            .format(Monitor.sid))
+        return Monitor.logged_in()
 
     @staticmethod
     def __goto_page(link: str):
         d_print('browser going to {}'.format(link))
-        CourseMonitor.browser.get(link)
+        Monitor.browser.get(link)
 
         # wait until user logs in and the courses can be seen
         try:
-            WebDriverWait(CourseMonitor.browser, timeout=60) \
-                .until(lambda x: CourseMonitor.__do_login_seq())
+            WebDriverWait(Monitor.browser, timeout=60) \
+                .until(lambda x: Monitor.__do_login_seq())
         except TimeoutException:
             # fail login here and force manual login
-            CourseMonitor.login_fail = True
-        return CourseMonitor.browser
+            Monitor.login_fail = True
+        return Monitor.browser
 
     @staticmethod
     def get_course_page(uid: str):
-        if CourseMonitor.login_fail:
+        if Monitor.login_fail:
             return None
-        return CourseMonitor.__goto_page(
-            CourseMonitor.__course_link_builder(CourseMonitor.sid, uid)).page_source
+        return Monitor.__goto_page(
+            Monitor.__course_link_builder(Monitor.sid, uid)).page_source

@@ -1,19 +1,16 @@
 import os
 
 from dotenv import load_dotenv
-from flask import Flask, send_from_directory, Response, request, redirect, jsonify
+from flask import Flask, send_from_directory, Response, request, redirect
 from flask_login import LoginManager, login_required, login_user, current_user
 
-from course_monitor import course_monitor, course, JobState
-from course_monitor.courses_manager import \
-    add_course_job, remove_courses, remove_course, init_monitor, get_time, add_course
+from course_monitor import Monitor, CourseEncoder, JobState, set_debug
+from course_monitor.utils import \
+    add_course_job, remove_course, init_monitor, get_time, add_course, build_sem_code, valid_uid
 from models import User
 
-CourseMonitor = course_monitor.CourseMonitor
-CourseEncoder = course.CourseEncoder
-Course = course.Course
-
 API = '/api/v1'
+
 load_dotenv()
 app = Flask(__name__, static_folder='client/build', static_url_path='')
 app.secret_key = os.getenv('SECRET_KEY')
@@ -32,23 +29,46 @@ scheduler, emitters = init_monitor(os.getenv('SEM'),
 start_time, end_time = get_time(os.getenv('START')), get_time(os.getenv('END'))
 users[usr_name] = User(usr_name, passwd)
 wait_time, jitter = 180, 10
-course_monitor.debug = True
-course.debug = True
+set_debug(os.getenv('FLASK_ENV') == 'development')
+
+
+def invalid_resp(uid: str):
+    if not valid_uid(uid):
+        return 'course id {} not valid'.format(uid), 400
+
+
+def undetected_resp(uid: str):
+    if not valid_uid(uid) or uid not in courses:
+        return 'course id {} not valid or not found'.format(uid), 404
 
 
 @app.route(API)
 def api_home():
-    return 'Welcome to UT Course Monitor API'
+    return 'UT Course Monitor API'
 
 
-@app.route(API + '/sid', methods=['GET'])
+@app.route(API + '/config', methods=['GET', 'POST'])
 @login_required
-def get_sid():
-    return Response(
-        mimetype='text/plain',
-        response=str(CourseMonitor.sid),
-        status=200,
-    )
+def config():
+    global wait_time, start_time, end_time
+
+    if request.method == 'POST':
+        if request.values.sid:
+            Monitor.sid = build_sem_code(request.values.sid)
+
+        # todo do proper precondition checking
+        if request.values.interval:
+            wait_time = int(request.values.interval)
+            pass  # todo implement
+        if t := request.values.start:
+            start_time = get_time(t)
+        if t := request.values.end:
+            end_time = get_time(t)
+
+    return {'sid': str(Monitor.sid),
+            'interval': str(wait_time),
+            'start': start_time.strftime('%H:%M'),
+            'end': end_time.strftime('%H:%M')}
 
 
 @app.route(API + '/courses', methods=['GET'])
@@ -56,116 +76,80 @@ def get_sid():
 def get_courses():
     return Response(
         mimetype='application/json',
-        response=CourseEncoder().encode(list(courses.values())),
-        status=200,
-    )
+        response=CourseEncoder().encode(list(courses.values())))
 
 
-@app.route(API + '/courses', methods=['DELETE'])
-@login_required
-def remove_all_courses():
-    remove_courses(courses)
-    return Response(
-        mimetype='plain/text',
-        response='successfully removed all courses',
-        status=200,
-    )
-
-
-@app.route(API + '/course/<uid>', methods=['GET'])
+@app.route(API + '/courses/<uid>', methods=['GET'])
 @login_required
 def get_course(uid: str):
-    if not Course.valid_uid(uid) or uid not in courses:
-        return Response(
-            mimetype='text/plain',
-            response='course id {} not found or invalid'.format(uid),
-            status=400 if Course.valid_uid(uid) else 404,
-        )
+    if resp := undetected_resp(uid):
+        return resp
 
     return Response(
         mimetype='application/json',
-        response=CourseEncoder().encode(courses),
-        status=200,
-    )
+        response=CourseEncoder().encode(courses))
 
 
-@app.route(API + '/course/<uid>', methods=['POST'])
+@app.route(API + '/courses/<uid>', methods=['POST'])
 @login_required
 def create_course(uid: str):
-    if not Course.valid_uid(uid) or uid in courses:
-        return Response(
-            mimetype='text/plain',
-            response='course id {} not valid or already exists'.format(uid),
-            status=400 if Course.valid_uid(uid) else 404,
-        )
+    if resp := invalid_resp(uid):
+        return resp
+
     course = add_course(uid, emitters, courses)
     add_course_job(scheduler, course, (start_time, end_time, wait_time), jitter)
-    return Response(
-        mimetype='text/plain',
-        response='course id {} successfully added'.format(uid),
-        status=201,
-    )
+    return 'course id {} successfully added'.format(uid), 201
 
 
-@app.route(API + '/course/<uid>', methods=['DELETE'])
+@app.route(API + '/courses/<uid>', methods=['DELETE'])
 @login_required
 def remove_course_id(uid: str):
-    if not Course.valid_uid(uid) or uid not in courses:
-        return Response(
-            mimetype='text/plain',
-            response='course id {} not valid or not found'.format(uid),
-            status=400 if Course.valid_uid(uid) else 404,
-        )
+    if resp := undetected_resp(uid):
+        return resp
 
     remove_course(uid, courses)
-    return Response(
-        mimetype='text/plain',
-        response='course id {} successfully removed'.format(uid),
-        status=200,
-    )
+    return 'course id {} successfully removed'.format(uid)
 
 
-@app.route(API + '/course/<uid>/pause', methods=['POST'])
+@app.route(API + '/courses/<uid>/pause', methods=['POST'])
 @login_required
 def pause_course(uid: str):
-    if not Course.valid_uid(uid) or uid not in courses:
-        return Response(
-            mimetype='text/plain',
-            response='course id {} not valid or not found'.format(uid),
-            status=400 if Course.valid_uid(uid) else 404,
-        )
+    if resp := undetected_resp(uid):
+        return resp
+
     course = courses[uid]
     if request.values['status'] == 'true':
         course.pause_job()
     if request.values['status'] == 'false':
         course.resume_job()
 
-    return jsonify({'status': course.paused})
+    return {'status': course.paused}
 
 
-@app.route(API + '/logged_in', methods=['GET'])
-def browser_login_status():
-    browser_logged_in = CourseMonitor.logged_in() and not CourseMonitor.login_fail
-    return jsonify({'status': browser_logged_in})
+@app.route(API + '/login_status', methods=['GET'])
+def login_status():
+
+    if not current_user.is_authenticated:
+        return {'user': False}
+
+    browser_logged_in = Monitor.logged_in() and not Monitor.login_fail
+    return {'browser': browser_logged_in,
+            'user': current_user.is_authenticated}
 
 
-@app.route(API + '/logged_in', methods=['POST'])
+@app.route(API + '/browser_login', methods=['POST'])
+@login_required
 def browser_login_action():
-    scheduler.add_job(CourseMonitor.login, id=str(CourseMonitor.sid))
-    login_state = JobState(str(CourseMonitor.sid))
+    scheduler.add_job(Monitor.login, id=str(Monitor.sid))
+    login_state = JobState(str(Monitor.sid))
     login_state.listen_done(scheduler)
     login_state.wait_done()
-    return jsonify({'status': CourseMonitor.logged_in()})
+    return {'status': Monitor.logged_in()}
 
 
 @login_manager.user_loader
 def load_user(user_id):
     return users[user_id]
-
-
-@app.route(API + '/login_status', methods=['GET'])
-def is_logged_in():
-    return jsonify({'status': current_user.is_authenticated})
 
 
 @app.route('/login', methods=['GET'])
@@ -185,18 +169,10 @@ def login():
 
     user = users[user_id]
     if not user or not user.check_password(passwd):
-        return Response(
-            mimetype='text/plain',
-            response='fail',
-            status=501,
-        )
+        return 'fail', 401
 
     login_user(user, remember=True)
-    return Response(
-        mimetype='text/plain',
-        response='success',
-        status=200,
-    )
+    return 'success'
 
 
 @app.route('/', defaults={'path': ''})

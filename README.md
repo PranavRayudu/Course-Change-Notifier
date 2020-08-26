@@ -1,6 +1,6 @@
 # Course Change Notifier
 Course Change Notifier is a simple script that allows users to run a course availability checker for UT Austin. It runs in the background and notifies user via Slack if a desired course opens up in the schedule.
-This requires Python 3.6+, Google Chrome, and Selenium Chrome drivers.
+This requires Python 3.8+, Google Chrome, and Selenium Chrome drivers.
 
 ## Get Started
 ```.commandline
@@ -21,7 +21,6 @@ EID=<UT EID>
 UT_PASS=<UT systems password>
 SEM=<Current Semester, ex: "Fall 2020" (with quotes)> # this is required unless you specify semester in arguments
 ```
-In Duo, set push notifications as your preferred method of signing in, so Duo will automatically send a push notification whenever you need to sign in. If you do not do this, you will have to manually click "Send push" whenever it reaches the two-factor authentication screen. Moreover, if you do not approve the push notification before a timeout, you will also have to manually click "Send push" again.
 
 #### 2. Setting up Slack notifications
 Course change updated are sent to you via Slack. You can create a workspace [here](https://slack.com/get-started#/create) and your own Slack app [here](https://api.slack.com/apps?new_app=1).
@@ -33,7 +32,7 @@ To configure your project for Slack, and add the following data to your ```.env`
 SLACK_TOKEN=<Bot User OAuth Access Token>
 SLACK_CHANNEL=<channel name>  # channel's name, simply whatever follows the '#' of desired channel
 ```
-otherwise, use the ConsoleEmitter (prints to console) by commenting out Slack's import statement and initializer.
+otherwise, use the ConsoleEmitter (prints to console)
 
 #### 3. Set up start and end times of day (optional)
 You can configure course checks to happen only during a specific time period of the day. To do so, add the following to your ``.env`` file
@@ -52,14 +51,25 @@ To run the project, simply run ``python local.py --sem "Fall 2020" --uids <uid o
 - The ``--headless`` argument is optional (False by default) and runs the browser without any GUI. Enable this only when you have added your UT credentials to ``.env`` and configured Duo to automatically send a push.
 - The ``--verbose`` argument is optional (False by default) and shows debug print statements in the terminal. Enable this for debugging.
 
-#### 5. Editing list of courses during run
-Courses can be added while the script is running by entering ``add <uid>`` into the terminal. Similarly ``remove <uid>`` will stop that course from being tracked.
-``list`` will list all courses currently being tracked and ``clear`` will remove all courses from being tracked.  
+#### 5. Issuing commands while the script is running
+The command line can be used to issue arguments to the scheduler:
+- ``add <uid>`` adds a course to be tracker and course list
+- ``remove <uid>`` will stop that course from being tracker and from the course list
+- ``pause <uid>`` pauses a course from being tracked (but keeps it in the course list)
+= ``resume <uid>`` resumes a paused course to continue tracking
+- ``list`` will list all courses currently being tracked and 
+- ``clear`` will remove all courses from being tracked
+- ``exit`` stops and exists the script
+> Note: it is not recommended to use the ``--verbose`` flag with commands
 
 Example usage
 ```commandline
 python local.py --sem "Fall 2020" --uids 37960 37965 37970 37975 --headless
 ```
+
+#### 6. Use ``server.py`` to use web gui (experimental)
+Add ``FLASK_ENV=development`` and ``SECRET_KEY=<random hash>`` to your ``.env`` file
+Run ``server.py`` and React project in ``/client`` together 
 
 ## Todo
 - [x] Add direct links to add courses from every message
@@ -68,7 +78,6 @@ python local.py --sem "Fall 2020" --uids 37960 37965 37970 37975 --headless
 - [x] Add support for multiple notification emitters
 - [x] Remove dependency on links
 - [x] Allow dynamic scheduling and make server-ready
-- [ ] Integrate SAML auth into requests and remove Selenium dependency (get past Duo)?
 - [ ] (Dangerous) add automatic registration
 
 ## Contribution

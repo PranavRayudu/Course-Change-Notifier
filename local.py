@@ -5,12 +5,9 @@ import argparse
 
 from dotenv import load_dotenv
 
-from course_monitor import course_monitor, course
-from course_monitor.courses_manager import add_courses, add_courses_to_jobs, add_course_job, remove_courses, \
-    remove_course, init_monitor, get_time, add_course
-
-CourseMonitor = course_monitor.CourseMonitor
-Course = course.Course
+from course_monitor import Monitor, set_debug
+from course_monitor.utils import add_courses, add_courses_to_jobs, add_course_job, remove_courses, \
+    remove_course, init_monitor, get_time, add_course, valid_uid
 
 
 def add_args(parser: argparse.ArgumentParser) -> None:
@@ -54,7 +51,7 @@ def add_args(parser: argparse.ArgumentParser) -> None:
                         help='add this flag to randomize the course request times (10s by default)')
 
 
-def parse_input(cmd):
+def parse_input(cmd) -> None:
     tokens = cmd.split()
     cmd = tokens[0].lower()
 
@@ -62,55 +59,39 @@ def parse_input(cmd):
         print('list of courses being checked')
         for uid in courses:
             print('- {}'.format(courses[uid]))
-
         scheduler.print_jobs()
-
     elif cmd == 'clear':
         remove_courses(courses)
         print('cleared all courses')
-
-    # fixme unsanitary repetitive precondition checking
-    elif cmd == 'add':
-        if not len(tokens) == 2:
-            print('error, invalid input')
-        else:
-            uid = tokens[1]
-            if uid in courses or not Course.valid_uid(uid):
-                return
-            course = add_course(uid, emitters, courses)
-            add_course_job(scheduler, course, (start_time, end_time, wait_time), jitter)
-            print('added {}'.format(uid))
-    elif cmd == 'remove':
-        if not len(tokens) == 2:
-            print('error, invalid input')
-        else:
-            uid = tokens[1]
-            if uid not in courses or not Course.valid_uid(uid):
-                return
-            remove_course(uid, courses)
-            print('removed {}'.format(uid))
-    elif cmd == 'pause':
-        if not len(tokens) == 2:
-            print('error, invalid input')
-        else:
-            uid = tokens[1]
-            if uid not in courses or not Course.valid_uid(uid):
-                return
-            course = courses[uid]
-            course.resume_job()
-    elif cmd == 'resume':
-        if not len(tokens) == 2:
-            print('error, invalid input')
-        else:
-            uid = tokens[1]
-            if uid not in courses or not Course.valid_uid(uid):
-                return
-            course = courses[uid]
-            course.pause_job(course)
     elif cmd == 'login':
-        scheduler.add_job(CourseMonitor.login, id=str(CourseMonitor.sid))
+        scheduler.add_job(Monitor.login, id=str(Monitor.sid))
     elif cmd == 'exit':
         exit()
+
+    if not len(tokens) == 2:
+        print('error, invalid input')
+        return
+
+    uid = tokens[1]
+
+    if not valid_uid(uid):
+        print('invalid uid')
+        return
+
+    course = courses[uid]
+
+    if cmd == 'add':
+        course = add_course(uid, emitters, courses)
+        add_course_job(scheduler, course, (start_time, end_time, wait_time), jitter)
+        print('added {}'.format(uid))
+    elif cmd == 'remove':
+        remove_course(uid, courses)
+        print('removed {}'.format(uid))
+    elif cmd == 'pause':
+        course.resume_job()
+    elif cmd == 'resume':
+        course = courses[uid]
+        course.pause_job(course)
     else:
         print('unknown command')
 
@@ -124,7 +105,7 @@ if __name__ == '__main__':
 
     load_dotenv()
 
-    uids = [uid for uid in args.uids if Course.valid_uid(uid)]
+    uids = [uid for uid in args.uids if valid_uid(uid)]
 
     scheduler, emitters = init_monitor(args.sem or os.getenv('SEM'),
                                        os.getenv('EID'),
@@ -134,8 +115,8 @@ if __name__ == '__main__':
     start_time, end_time = get_time(os.getenv('START')), get_time(os.getenv('END'))
 
     wait_time = int(args.period)
-    course_monitor.debug = args.verbose
-    course.debug = args.verbose
+
+    set_debug(args.verbose)
 
     jitter = args.randomize
     courses = add_courses(uids, emitters)
