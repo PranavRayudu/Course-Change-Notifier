@@ -30,23 +30,19 @@ function App() {
         fetch(`/api/v1/login_status`, {
             method: 'GET',
         }).then(res => res.json()).then(data => {
-            if (data.status) success()
-            else fail()
+            if (data.status) {
+                setLogged(true)
+                if (path === '/login')
+                    setRedir('/')
+            } else {
+                setLogged(false)
+                setRedir('/login')
+            }
         }).catch((err) => {
-            fail()
+            setLogged(false)
+            setRedir('/login')
         })
-    })
-
-    const fail = () => {
-        setLogged(false)
-        setRedir('/login')
-    }
-
-    const success = () => {
-        setLogged(true)
-        if (path === '/login')
-            setRedir('/')
-    }
+    }, [path])
 
     return (
         <Layout className={AppStyles.layout}>
@@ -62,13 +58,13 @@ function App() {
             </Menu>}
 
             <Content className={AppStyles.container}>
-                    <LoginNotification/>
-                    <Switch>
-                        {logged && <Route path={"/"} component={Courses} exact/>}
-                        {logged && <Route path={"/settings"} component={Settings}/>}
-                        {!logged && <Route path={"/login"} component={Login}/>}
-                        {logged && <Route component={NotFound}/>}
-                    </Switch>
+                {logged && <LoginNotification/>}
+                <Switch>
+                    {logged && <Route path={"/"} component={Courses} exact/>}
+                    {logged && <Route path={"/settings"} component={Settings}/>}
+                    {!logged && <Route path={"/login"} component={Login}/>}
+                    {logged && <Route component={NotFound}/>}
+                </Switch>
             </Content>
 
             <Footer className={AppStyles.responsiveSm}>

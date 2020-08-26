@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from flask import Flask, send_from_directory, Response, request, redirect, jsonify
 from flask_login import LoginManager, login_required, login_user, current_user
 
-from course_monitor import course_monitor, course
+from course_monitor import course_monitor, course, JobState
 from course_monitor.courses_manager import \
     add_course_job, remove_courses, remove_course, init_monitor, get_time, add_course
 from models import User
@@ -134,10 +134,10 @@ def browser_login_status():
 @app.route(API + '/logged_in', methods=['POST'])
 def browser_login_action():
     scheduler.add_job(CourseMonitor.login, id=str(CourseMonitor.sid))
-    return Response(
-        mimetype='text/plain',
-        status=200,
-    )
+    login_state = JobState(str(CourseMonitor.sid))
+    login_state.listen_done(scheduler)
+    login_state.wait_done()
+    return jsonify({'status': CourseMonitor.logged_in()})
 
 
 @login_manager.user_loader

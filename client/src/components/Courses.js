@@ -47,9 +47,9 @@ class Courses extends React.Component {
         {
             title: 'Action',
             dataIndex: 'uid',
-            render: text => <Button
+            render: text => <a
                 href={`https://utdirect.utexas.edu/registration/registration.WBX?s_ccyys=${this.state.sid}&s_af_unique=${text}`}
-                htmlType={"a"} target="_blank">Register</Button>,
+                target="_blank" rel="noopener noreferrer">Register</a>,
         },
     ];
 

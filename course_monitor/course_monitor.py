@@ -92,6 +92,7 @@ class CourseMonitor:
         CourseMonitor.login_fail = False  # method acts as a reset for manual login
         CourseMonitor.__goto_page("https://utdirect.utexas.edu/apps/registrar/course_schedule/{}/"
                                   .format(CourseMonitor.sid))
+        return CourseMonitor.logged_in()
 
     @staticmethod
     def __goto_page(link: str):
