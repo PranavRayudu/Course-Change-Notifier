@@ -32,6 +32,12 @@ wait_time, jitter = 180, 10
 set_debug(os.getenv('FLASK_ENV') == 'development')
 
 
+def reset():
+    global wait_time, start_time, end_time
+    wait_time = 180
+    start_time, end_time = get_time(os.getenv('START')), get_time(os.getenv('END'))
+
+
 def invalid_resp(uid: str):
     if not valid_uid(uid):
         return 'course id {} not valid'.format(uid), 400
@@ -53,27 +59,40 @@ def config():
     global wait_time, start_time, end_time
 
     if request.method == 'POST':
-
+        old = (Monitor.sid, wait_time, start_time, end_time)
         try:
-            if sid := request.values['sid']:
+            updated = False
+            if sid := request.values.get('sid'):
                 Monitor.sid = build_sem_code(sid)
-            if interval := int(request.values['interval']):
+                updated |= True
+                print('updated sid')
+            if interval := request.values.get('interval'):
                 wait_time = int(interval)
-            if t := request.values['start']:
-                start_time = get_time(t)
-            if t := request.values['end']:
-                end_time = get_time(t)
-
-            scheduler.remove_all_jobs()
-            for course in courses.values():
-                add_course_job(scheduler, course, (start_time, end_time, wait_time), jitter)
+                updated |= True
+                print('updated interval')
+            if st := (request.values.get('start')) and (en := request.values.get('end')):
+                if st == 'none' and en == 'none':
+                    start_time, end_time = None, None
+                else:
+                    start_time, end_time = get_time(st), get_time(en)
+                print('updated range')
+                updated |= True
         except Exception:
+            Monitor.sid, wait_time, start_time, end_time = old  # restore everything
             return 'failed', 500
+
+        if not updated:
+            print('resetting')
+            reset()
+
+        scheduler.remove_all_jobs()
+        for course in courses.values():
+            add_course_job(scheduler, course, (start_time, end_time, wait_time), jitter)
 
     return {'sid': str(Monitor.sid),
             'interval': str(wait_time),
-            'start': start_time.strftime('%H:%M'),
-            'end': end_time.strftime('%H:%M')}
+            'start': start_time.strftime('%H:%M') if start_time else None,
+            'end': end_time.strftime('%H:%M') if end_time else None}
 
 
 @app.route(API + '/courses', methods=['GET'])

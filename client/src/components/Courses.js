@@ -26,7 +26,7 @@ class Courses extends React.Component {
             dataIndex: 'uid',
             render: (text, row) =>
                 row.status === 'invalid' ? text :
-                <a href={`https://utdirect.utexas.edu/apps/registrar/course_schedule/${this.state.sid}/${text}/`}>{text}</a>,
+                    <a href={`https://utdirect.utexas.edu/apps/registrar/course_schedule/${this.state.sid}/${text}/`}>{text}</a>,
             sorter: (a, b) => a.uid.localeCompare(b.uid),
             sortDirections: ['descend', 'ascend'],
         },
@@ -124,7 +124,8 @@ class Courses extends React.Component {
             this.setState({data: data})
         }).catch((err) => {
             message.error('Unable to refresh courses')
-        }).finally(() => this.endLoading())
+        })
+            .finally(() => this.endLoading())
     }
 
     addCourse(uid) {
