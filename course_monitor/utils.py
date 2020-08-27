@@ -16,6 +16,8 @@ def build_sem_code(sem: str):
     season_codes = {'fall': 9, 'spring': 2, 'summer': 6}
     year = int(semester_pts[1])
     season_code = season_codes[semester_pts[0]]
+    if not season_code:
+        raise Exception('Given semester {} is wrong'.format(sem))
     return '{}{}'.format(year, season_code)
 
 
@@ -165,6 +167,8 @@ def init_monitor(sem, usr_name, passwd, headless=False):
 
 
 def get_time(time: str):
+    if len(time) != 4 or not time.isdigit():
+        raise Exception('Incorrect time format: {}'.format(time))
     return datetime.strptime(time, "%H%M").time() if time else None
 
 

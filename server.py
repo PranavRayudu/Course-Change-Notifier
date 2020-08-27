@@ -53,17 +53,22 @@ def config():
     global wait_time, start_time, end_time
 
     if request.method == 'POST':
-        if request.values.sid:
-            Monitor.sid = build_sem_code(request.values.sid)
 
-        # todo do proper precondition checking
-        if request.values.interval:
-            wait_time = int(request.values.interval)
-            pass  # todo implement
-        if t := request.values.start:
-            start_time = get_time(t)
-        if t := request.values.end:
-            end_time = get_time(t)
+        try:
+            if sid := request.values['sid']:
+                Monitor.sid = build_sem_code(sid)
+            if interval := int(request.values['interval']):
+                wait_time = int(interval)
+            if t := request.values['start']:
+                start_time = get_time(t)
+            if t := request.values['end']:
+                end_time = get_time(t)
+
+            scheduler.remove_all_jobs()
+            for course in courses.values():
+                add_course_job(scheduler, course, (start_time, end_time, wait_time), jitter)
+        except Exception:
+            return 'failed', 500
 
     return {'sid': str(Monitor.sid),
             'interval': str(wait_time),
@@ -128,7 +133,6 @@ def pause_course(uid: str):
 
 @app.route(API + '/login_status', methods=['GET'])
 def login_status():
-
     if not current_user.is_authenticated:
         return {'user': False}
 
