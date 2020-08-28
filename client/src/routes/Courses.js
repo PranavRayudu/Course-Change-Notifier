@@ -2,8 +2,9 @@ import React from 'react';
 import {message, Card, Tag, Button, Form, Input, Space, Table} from "antd";
 import {PlusOutlined, DeleteOutlined, ReloadOutlined, PauseOutlined, CaretRightOutlined} from '@ant-design/icons';
 import {red, yellow, green, grey} from '@ant-design/colors';
-import Pluralize from "./Pluralize";
+import Pluralize from "../components/Pluralize";
 import AppStyles from "../app.module.scss";
+import {connect} from "react-redux";
 
 
 const tagColors = {
@@ -263,6 +264,18 @@ class Courses extends React.Component {
     }
 }
 
-export default Courses;
+// export default Courses
+
+const mapStateToProps = state => {
+    return {
+        sid: state.sid,
+        data: state.courses,
+        refreshing: state.coursesLoading,
+    }
+}
+
+// function mapDispatchToProps(dispatch)
+
+export default connect(mapStateToProps)(Courses);
 
 

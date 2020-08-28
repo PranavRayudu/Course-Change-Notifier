@@ -1,17 +1,19 @@
 import React, {useEffect, useState} from 'react';
 import {Redirect, Switch, Route, Link, useLocation} from "react-router-dom";
-import {Layout, Menu} from "antd";
+import {Layout, Menu, message} from "antd";
 import {SettingOutlined} from '@ant-design/icons';
-import Courses from "./components/Courses";
-import Settings from "./components/Settings";
-import UserLogin from "./components/UserLogin";
-import NotFound from "./components/NotFound";
+import Courses from "./routes/Courses";
+import Settings from "./routes/Settings";
+import UserLogin from "./routes/UserLogin";
+import NotFound from "./routes/NotFound";
 import BrowserLogin from "./components/BrowserLogin";
 
 import '../node_modules/antd/dist/antd.css';
-// import '../node_modules/antd/dist/antd.dark.css';
+import '../node_modules/antd/dist/antd.dark.css';
 
 import AppStyles from './app.module.scss';
+import {connect} from "react-redux";
+import {fetchLoginData} from "./store/actions";
 
 const {Header, Footer, Content} = Layout;
 
@@ -20,33 +22,28 @@ const path_key = {
     "/settings": "settings"
 }
 
-function App() {
+function App({dispatch, logged, loading}) {
 
     const path = useLocation().pathname
-    const [logged, setLogged] = useState(false)
-    const [redirPath, setRedir] = useState(null)
 
     useEffect(() => {
-        fetch(`/api/v1/login_status`, {
-            method: 'GET',
-        }).then(res => res.json()).then(data => {
-            if (data.user) {
-                setLogged(true)
-                if (path === '/login')
-                    setRedir('/')
-            } else {
-                setLogged(false)
-                setRedir('/login')
-            }
-        }).catch((err) => {
-            setLogged(false)
-            setRedir('/login')
-        })
-    }, [path])
+        dispatch(fetchLoginData(
+            null,
+            () => message.error('unable to contact server')
+        ))
+    }, [dispatch, path])
+
+    const renderRedirect = () => {
+        if (!loading && !logged && path !== '/login')
+            return <Redirect to={'/login'}/>
+        if (!loading && logged && path === '/login')
+            return <Redirect to={'/'}/>
+        return null
+    }
 
     return (
         <Layout className={AppStyles.layout}>
-            {redirPath && <Redirect to={redirPath}/>}
+            {renderRedirect()}
             <Header className={AppStyles.titleBar}>
                 <h3 className={AppStyles.title}>UT Course Monitor Dashboard</h3>
             </Header>
@@ -74,4 +71,12 @@ function App() {
     );
 }
 
-export default App;
+// export default App;
+const mapStateToProps = state => {
+    return {
+        logged: state.userLogin,
+        loading: state.userLoading,
+    }
+}
+
+export default connect(mapStateToProps)(App);
