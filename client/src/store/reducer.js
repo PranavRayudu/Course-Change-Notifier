@@ -1,11 +1,13 @@
 import {
-    REQUEST_BROWSER_LOGIN,
-    GET_LOGIN,
-    SET_CONFIG,
-    SET_LOGIN,
-    REQUEST_USER_LOGIN,
     GET_COURSES,
-    SET_COURSES, UPDATE_COURSE, REMOVE_COURSES
+    GET_LOGIN,
+    REMOVE_COURSES,
+    REQUEST_BROWSER_LOGIN,
+    REQUEST_USER_LOGIN,
+    SET_CONFIG,
+    SET_COURSES,
+    SET_LOGIN,
+    UPDATE_COURSE
 } from "./actions";
 import moment from "moment";
 
@@ -120,7 +122,7 @@ function rootReducer(state = initialState, action) {
                 ...state,
                 coursesLoading: false,
                 courses: state.courses.filter((course) =>
-                    action.payload.find(c => c.uid === course.uid)
+                    !action.payload.some(c => c.uid === course.uid)
                 )
             }
         }

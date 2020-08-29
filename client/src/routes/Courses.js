@@ -25,17 +25,12 @@ const within = (a, b) => {
     let now = moment()
     if (a && b) {
         if (a.isAfter(b)) { // reverse order, add to b
-            if (now.isBefore(b)) {
-                a.subtract(1, 'days')
-            } else {
-                b.add(1, 'days')
-            }
+            if (now.isBefore(b)) a.subtract(1, 'days')
+            else b.add(1, 'days')
         }
         return now.isBetween(a, b)
     }
-
     return true
-
 }
 
 
@@ -72,15 +67,17 @@ class Courses extends React.Component {
             render: text => <Tag color={tagColors[text]}>{text}</Tag>,
         },
         {
-            // title: 'Control',
             dataIndex: 'paused',
-            render: (text, row) => text ?
-                <Button type={"dashed"} icon={<CaretRightOutlined/>}
-                        disabled={row.status === 'invalid'}
-                        onClick={() => this.resumeCourse(row.uid)}/> :
-                <Button type={"dashed"} icon={<PauseOutlined/>}
-                        disabled={row.status === 'invalid'}
-                        onClick={() => this.pauseCourse(row.uid)}/>,
+            render: (text, row) => {
+                let disabled = row.status === 'invalid'// || !this.state.running
+                return text ?
+                    <Button type={"dashed"} icon={<CaretRightOutlined/>}
+                            disabled={disabled}
+                            onClick={() => this.resumeCourse(row.uid)}/> :
+                    <Button type={"dashed"} icon={<PauseOutlined/>}
+                            disabled={disabled}
+                            onClick={() => this.pauseCourse(row.uid)}/>
+            },
         },
         {
             // title: 'Action',
@@ -94,7 +91,7 @@ class Courses extends React.Component {
     constructor(props) {
         super(props);
 
-        this.state = {uid: '', data: [], selected: []}
+        this.state = {uid: '', running: false, selected: []}
         this.refreshData = this.refreshData.bind(this)
         this.handleSubmit = this.handleSubmit.bind(this)
     }
@@ -102,13 +99,24 @@ class Courses extends React.Component {
     componentDidMount() {
         this.refreshData()
         setInterval(this.refreshData, 1000 * 60 * 5) // every 5 min
+
+        this.updateRunning()
     }
 
+    componentDidUpdate(prevProps, prevState, snapshot) {
+        if (prevProps !== this.props) {
+            this.updateRunning()
+        }
+    }
 
     handleSubmit(e) {
         // event.preventDefault()
         this.addCourse(this.state.uid)
         this.setState({uid: ''})
+    }
+
+    updateRunning() {
+        this.setState({running: within(...Object.values(this.props.timeRange))})
     }
 
     refreshData() {
@@ -131,7 +139,6 @@ class Courses extends React.Component {
         ))
     }
 
-
     pauseCourse(uid) {
         this.props.dispatch(postCourse(uid, {pause: true}))
     }
@@ -148,9 +155,9 @@ class Courses extends React.Component {
         };
 
         let tableHeader = <div className={AppStyles.heading}>
-            <h3>Tracking {this.props.data.length}&nbsp;
-                <Pluralize count={this.state.data.length} word={"Course"}/>&nbsp;&nbsp;
-                {within(...Object.values(this.props.timeRange)) ?
+            <h3>Tracking {this.props.data.length} <Pluralize count={this.props.data.length}
+                                                             word={"Course"}/>&nbsp;&nbsp;
+                {this.state.running ?
                     <Tag color={"success"} style={{marginBottom: 3}}>Running</Tag> :
                     <Tag color={"warning"} style={{marginBottom: 3}}>Not Running</Tag>}
             </h3>
@@ -158,9 +165,6 @@ class Courses extends React.Component {
             <Space>
                 <Form onFinish={this.handleSubmit} layout={"inline"}>
                     <Input.Group compact>
-                        {/*<Form.Item name={"uid"}
-                        rules={[{required: true}]}
-                        style={{width: "50%"}}>*/}
                         <Input required
                                placeholder={"Course ID"}
                                pattern={"[0-9]{5}"}
@@ -168,14 +172,11 @@ class Courses extends React.Component {
                                onChange={e => this.setState({uid: e.target.value})}
                                style={{maxWidth: "100px"}}
                         />
-                        {/*</Form.Item>*/}
-                        {/*<Form.Item style={{width: "50%"}}>*/}
                         <Button type={"primary"}
                                 htmlType={'submit'}>
                             <span className={AppStyles.hideSm}>Add</span>
                             <PlusOutlined/>
                         </Button>
-                        {/*</Form.Item>*/}
                     </Input.Group>
                 </Form>
 

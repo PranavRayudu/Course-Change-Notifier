@@ -188,21 +188,15 @@ export function unpostCourses(courses, success, fail) {
             }))
         })
 
-        Promise.all(fetches).then((res) => {
-            // console.log(res)
-            res.forEach(r => {
-                if (!r.ok) {
-                    dispatch(fetchCourseData()) // take care of partial success
-                    throw new Error()
-                }
-            })
-            return res.map(r => r.json())
+        Promise.all(fetches).then(async (res) => {
+            return Promise.all(res.map(r => r.json()))
         }).then((data) => {
             if (success) success()
             dispatch(removeCourses(data))
         }).catch((err) => {
             if (fail) fail()
             dispatch(receiveCourseDataFail())
+            dispatch(fetchCourseData()) // take care of partial success
         })
     }
 }

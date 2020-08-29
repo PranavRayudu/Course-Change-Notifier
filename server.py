@@ -86,6 +86,9 @@ def config():
         for course in courses.values():
             add_course_job(scheduler, course, (start_time, end_time, wait_time), jitter)
 
+    if os.getenv('FLASK_ENV') == 'development':
+        scheduler.print_jobs()
+
     return {'sid': str(Monitor.sid),
             'interval': str(wait_time),
             'start': start_time.strftime('%H%M') if start_time else None,
@@ -129,6 +132,9 @@ def create_course(uid: str):
         elif pause == 'false':
             course.resume_job()
 
+    if os.getenv('FLASK_ENV') == 'development':
+        scheduler.print_jobs()
+
     return CourseEncoder().encode(course), 201
 
 
@@ -138,6 +144,10 @@ def remove_course_id(uid: str):
     if resp := undetected_resp(uid):
         return resp
     course = remove_course(uid, courses)
+
+    if os.getenv('FLASK_ENV') == 'development':
+        scheduler.print_jobs()
+
     return CourseEncoder().encode(course)
 
 
