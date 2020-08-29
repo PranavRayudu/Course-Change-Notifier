@@ -1,19 +1,21 @@
-import React, {useEffect, useState} from 'react';
-import {Redirect, Switch, Route, Link, useLocation} from "react-router-dom";
+import React, {useEffect} from 'react';
+import {Link, Redirect, Route, Switch, useLocation} from "react-router-dom";
+import {connect} from "react-redux";
 import {Layout, Menu, message} from "antd";
 import {SettingOutlined} from '@ant-design/icons';
-import Courses from "./routes/Courses";
-import Settings from "./routes/Settings";
-import UserLogin from "./routes/UserLogin";
-import NotFound from "./routes/NotFound";
-import BrowserLogin from "./components/BrowserLogin";
+
+import {fetchConfigData, fetchLoginData} from "./store/actions";
 
 import '../node_modules/antd/dist/antd.css';
 import '../node_modules/antd/dist/antd.dark.css';
 
 import AppStyles from './app.module.scss';
-import {connect} from "react-redux";
-import {fetchLoginData} from "./store/actions";
+import BrowserLogin from "./components/BrowserLogin";
+import Courses from "./routes/Courses";
+import NotFound from "./routes/NotFound";
+import Settings from "./routes/Settings";
+import UserLogin from "./routes/UserLogin";
+
 
 const {Header, Footer, Content} = Layout;
 
@@ -22,12 +24,29 @@ const path_key = {
     "/settings": "settings"
 }
 
-function App({dispatch, logged, loading}) {
+function sid_to_text(sid) {
+    let year = parseInt(sid.substring(0, 4))
+    let sem = parseInt(sid.substring(4))
+
+    const sem_to_season = {
+        2: 'Spring',
+        6: 'Summer',
+        9: 'Fall'
+    }
+
+    return [sem_to_season[sem], year].join(' ')
+}
+
+function App({dispatch, logged, loading, sid}) {
 
     const path = useLocation().pathname
 
     useEffect(() => {
         dispatch(fetchLoginData(
+            null,
+            () => message.error('unable to contact server')
+        ))
+        dispatch(fetchConfigData(
             null,
             () => message.error('unable to contact server')
         ))
@@ -45,7 +64,7 @@ function App({dispatch, logged, loading}) {
         <Layout className={AppStyles.layout}>
             {renderRedirect()}
             <Header className={AppStyles.titleBar}>
-                <h3 className={AppStyles.title}>UT Course Monitor Dashboard</h3>
+                <h3 className={AppStyles.title}>UT Course Monitor Dashboard {sid && ('for ' + sid_to_text(sid))}</h3>
             </Header>
 
             {logged &&
@@ -71,11 +90,11 @@ function App({dispatch, logged, loading}) {
     );
 }
 
-// export default App;
 const mapStateToProps = state => {
     return {
         logged: state.userLogin,
         loading: state.userLoading,
+        sid: state.sid,
     }
 }
 

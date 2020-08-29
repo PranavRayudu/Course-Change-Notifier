@@ -143,37 +143,63 @@ function receiveConfigData(payload) {
 
 
 // middleware functions
-export function fetchCourses(success, fail) {
+
+export function fetchCourseData(success, fail) {
     return function (dispatch) {
-        setInterval(get_courses, 1000 * 60 * 5, dispatch, success, fail)
+        dispatch(startCourseRequest())
+        fetch(`/api/v1/courses`, {}).then(res => {
+            if (!res.ok) throw new Error()
+            return res.json()
+        }).then(data => {
+            if (success) success()
+            dispatch(receiveCourseData(data))
+        }).catch((err) => {
+            if (fail) fail()
+            dispatch(receiveCourseDataFail())
+        })
     }
 }
 
-const get_courses = (dispatch, success, fail) => {
-    dispatch(startCourseRequest())
-    fetch(`/api/v1/courses`, {}).then(res => {
-        if (!res.ok) throw new Error()
-        return res.json()
-    }).then(data => {
-        if (success) success()
-        dispatch(receiveCourseData(data))
-    }).catch((err) => {
-        if (fail) fail()
-        dispatch(receiveCourseDataFail())
-    })
-}
-
-export function postCourse(uid, success, fail) {
+export function postCourse(uid, data, success, fail) {
     return function (dispatch) {
         dispatch(startCourseRequest())
-        fetch(`/api/v1/courses/${uid}`, {
+        fetch(`/api/v1/courses/${uid}?` + serialize(data), {
             method: 'POST'
         }).then((res) => {
             if (!res.ok) throw new Error()
             return res.json()
         }).then((data) => {
             if (success) success()
-            dispatch(addCourse(data))
+            dispatch(updateCourse(data))
+        }).catch((err) => {
+            if (fail) fail()
+            dispatch(receiveCourseDataFail())
+        })
+    }
+}
+
+export function unpostCourses(courses, success, fail) {
+    return function (dispatch) {
+        dispatch(startCourseRequest())
+        let fetches = []
+        courses.forEach(course => {
+            fetches.push(fetch(`/api/v1/courses/${course.uid}`, {
+                method: 'DELETE',
+            }))
+        })
+
+        Promise.all(fetches).then((res) => {
+            // console.log(res)
+            res.forEach(r => {
+                if (!r.ok) {
+                    dispatch(fetchCourseData()) // take care of partial success
+                    throw new Error()
+                }
+            })
+            return res.map(r => r.json())
+        }).then((data) => {
+            if (success) success()
+            dispatch(removeCourses(data))
         }).catch((err) => {
             if (fail) fail()
             dispatch(receiveCourseDataFail())
@@ -182,6 +208,7 @@ export function postCourse(uid, success, fail) {
 }
 
 // actions
+
 export const GET_COURSES = 'courses/GET_COURSES'
 
 function startCourseRequest() {
@@ -190,29 +217,23 @@ function startCourseRequest() {
 
 export const SET_COURSES = 'courses/SET_COURSES'  // set login data in state
 function receiveCourseData(payload) {
-    return {type: SET_COURSES, courses: payload}
+    return {type: SET_COURSES, payload}
 }
 
 function receiveCourseDataFail() {
     return {type: SET_COURSES, status: 'fail'}
 }
 
-export const ADD_COURSE = 'courses/ADD_COURSE'
-
-function addCourse(payload) {
-    return {type: ADD_COURSE, payload}
-}
-
-export const REMOVE_COURSE = 'courses/REMOVE_COURSE'
-
-function removeCourse(payload) {
-    return {type: REMOVE_COURSE, payload}
-}
-
-export const UPDATE_COURSE = 'courses/UPDATE_COURSE'
+export const UPDATE_COURSE = 'courses/ADD_COURSE' // also counts as update
 
 function updateCourse(payload) {
     return {type: UPDATE_COURSE, payload}
+}
+
+export const REMOVE_COURSES = 'courses/REMOVE_COURSES'
+
+function removeCourses(payload) {
+    return {type: REMOVE_COURSES, payload}
 }
 
 
@@ -221,7 +242,7 @@ function isEmpty(obj) {
     return Object.keys(obj).length === 0
 }
 
-function serialize(obj) {
+function serialize(obj = {}) {
     const str = [];
     for (let p in obj)
         if (obj.hasOwnProperty(p)) {

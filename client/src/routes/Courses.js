@@ -1,11 +1,13 @@
-import React from 'react';
-import {message, Card, Tag, Button, Form, Input, Space, Table} from "antd";
-import {PlusOutlined, DeleteOutlined, ReloadOutlined, PauseOutlined, CaretRightOutlined} from '@ant-design/icons';
-import {red, yellow, green, grey} from '@ant-design/colors';
-import Pluralize from "../components/Pluralize";
-import AppStyles from "../app.module.scss";
-import {connect} from "react-redux";
+import React from 'react'
+import {connect} from 'react-redux'
+import {Button, Card, Form, Input, message, Space, Table, Tag} from 'antd'
+import {green, grey, red, yellow} from '@ant-design/colors'
+import {CaretRightOutlined, DeleteOutlined, PauseOutlined, PlusOutlined, ReloadOutlined,} from '@ant-design/icons'
 
+import {fetchCourseData, postCourse, unpostCourses} from "../store/actions";
+
+import AppStyles from '../app.module.scss'
+import Pluralize from '../components/Pluralize'
 
 const tagColors = {
     'open': green.primary,
@@ -66,7 +68,7 @@ class Courses extends React.Component {
             // title: 'Action',
             dataIndex: 'uid',
             render: (text, row) => row.status !== 'invalid' && <a
-                href={`https://utdirect.utexas.edu/registration/registration.WBX?s_ccyys=${this.state.sid}&s_af_unique=${text}`}
+                href={`https://utdirect.utexas.edu/registration/registration.WBX?s_ccyys=${this.props.sid}&s_af_unique=${text}`}
                 target="_blank" rel="noopener noreferrer">Register</a>,
         },
     ];
@@ -74,16 +76,16 @@ class Courses extends React.Component {
     constructor(props) {
         super(props);
 
-        this.state = {refreshing: false, uid: '', sid: '', data: [], selected: []}
+        this.state = {uid: '', data: [], selected: []}
         this.refreshData = this.refreshData.bind(this)
         this.handleSubmit = this.handleSubmit.bind(this)
     }
 
     componentDidMount() {
-        this.getSid()
         this.refreshData()
         setInterval(this.refreshData, 1000 * 60 * 5) // every 5 min
     }
+
 
     handleSubmit(e) {
         // event.preventDefault()
@@ -91,115 +93,44 @@ class Courses extends React.Component {
         this.setState({uid: ''})
     }
 
-    startLoading() {
-        this.setState({loading: true})
-    }
-
-    endLoading() {
-        this.setState({loading: false})
-    }
-
-    getSid() {
-        fetch(`/api/v1/config`, {
-            method: 'GET',
-        }).then(res => res.json()).then(data => {
-            this.setState({sid: data.sid})
-        }).catch((err) => {
-            message.error('Unable to get semester info')
-        })
-    }
-
     refreshData() {
-        this.startLoading()
-
-        fetch(`/api/v1/courses`, {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-            },
-        }).then(res => res.json()).then(data => {
-            data.forEach(course => {
-                course.key = course.uid
-            })
-            this.setState({data: data})
-        }).catch((err) => {
-            message.error('Unable to refresh courses')
-        })
-            .finally(() => this.endLoading())
+        this.props.dispatch(fetchCourseData(
+            null,
+            () => message.error('Unable to load course data')
+        ))
     }
 
     addCourse(uid) {
-        this.startLoading()
-        fetch(`/api/v1/courses/${uid}`, {
-            method: 'POST',
-            headers: {
-                'Accept': 'text/plain',
-                'Content-Type': 'application/json',
-            },
-        }).then(() => this.refreshData())
-            .catch((err) => {
-                message.error('Unable to add course')
-            })
-            .finally(() => this.endLoading())
+        this.props.dispatch(postCourse(uid), null,
+            () => message.success('Successfully added course'),
+            () => message.error('Error when adding course'))
     }
 
     deleteCourses(courses) {
-        this.startLoading()
-        let fetches = []
-        courses.forEach(course => {
-            fetches.push(fetch(`/api/v1/courses/${course.uid}`, {
-                method: 'DELETE',
-                headers: {
-                    'Accept': 'text/plain',
-                    'Content-Type': 'application/json',
-                },
-            }))
-        })
-
-        Promise.all(fetches)
-            .then(() => this.refreshData())
-            .catch((err) => {
-                message.error('Unable to delete courses')
-            })
-            .finally(() => this.endLoading())
+        this.props.dispatch(unpostCourses(courses,
+            () => message.success('Successfully deleted courses'),
+            () => message.error('Error deleting courses')
+        ))
     }
 
 
     pauseCourse(uid) {
-        this.startLoading()
-        fetch(`/api/v1/courses/${uid}/pause?status=true`, {
-            method: 'POST',
-        }).then(() => this.refreshData())
-            .catch((err) => {
-                message.error('Unable to pause course')
-            })
-            .finally(() => this.endLoading())
+        this.props.dispatch(postCourse(uid, {pause: true}))
     }
 
     resumeCourse(uid) {
-        this.startLoading()
-        fetch(`/api/v1/courses/${uid}/pause?status=false`, {
-            method: 'POST',
-        }).then(() => this.refreshData())
-            .catch((err) => {
-                message.error('Unable to pause course')
-            })
-            .finally(() => this.endLoading())
+        this.props.dispatch(postCourse(uid, {pause: false}))
     }
 
     render() {
-
         // rowSelection object indicates the need for row selection
         const rowSelection = {
             onChange: (selectedRowKeys, selectedRows) => {
-                console.log(`selectedRowKeys: ${selectedRowKeys}`, 'selectedRows: ', selectedRows);
-                // setSelected(selectedRows)
                 this.setState({selected: selectedRows})
             },
 
             // getCheckboxProps: record => ({
-            //     disabled: record.name === 'Disabled User', // Column configuration not to be checked
+            //     disabled: record.name === 'Disabled User',
             //     name: record.name,
             // }),
         };
@@ -212,7 +143,9 @@ class Courses extends React.Component {
             <Space>
                 <Form onFinish={this.handleSubmit} layout={"inline"}>
                     <Input.Group compact>
-                        {/*<Form.Item name={"uid"} rules={[{required: true}]} style={{width: "50%"}}>*/}
+                        {/*<Form.Item name={"uid"}
+                        rules={[{required: true}]}
+                        style={{width: "50%"}}>*/}
                         <Input required
                                placeholder={"Course ID"}
                                pattern={"[0-9]{5}"}
@@ -252,8 +185,8 @@ class Courses extends React.Component {
                         ...rowSelection
                     }}
                     columns={this.columns}
-                    dataSource={this.state.data}
-                    loading={this.state.loading}
+                    dataSource={this.props.data}
+                    loading={this.props.loading}
                     pagination={false}
                     scroll={{x: 700}}
                     // bordered
@@ -264,17 +197,13 @@ class Courses extends React.Component {
     }
 }
 
-// export default Courses
-
 const mapStateToProps = state => {
     return {
         sid: state.sid,
         data: state.courses,
-        refreshing: state.coursesLoading,
+        loading: state.coursesLoading,
     }
 }
-
-// function mapDispatchToProps(dispatch)
 
 export default connect(mapStateToProps)(Courses);
 

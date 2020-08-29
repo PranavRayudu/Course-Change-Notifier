@@ -1,9 +1,9 @@
 import React from 'react'
-import {debounce} from 'lodash'
-import {Row, Col, InputNumber, TimePicker, Space, Card, message, Button} from "antd"
-import AppStyles from "../app.module.scss"
 import {connect} from "react-redux";
-import {fetchConfigData, postConfigData} from "../store/actions";
+import {debounce} from 'lodash'
+import {Button, Card, Col, InputNumber, message, Row, Space, TimePicker} from "antd"
+import {postConfigData} from "../store/actions";
+import AppStyles from "../app.module.scss"
 
 const {RangePicker} = TimePicker
 
@@ -28,14 +28,7 @@ class Settings extends React.Component {
         this.setRange = this.setRange.bind(this)
         this.sendConfig = this.sendConfig.bind(this)
         this.updateConfig = this.updateConfig.bind(this)
-        this.send_debouce = debounce(this.updateConfig, 3000)
-    }
-
-    componentDidMount() {
-        this.props.dispatch(fetchConfigData(
-            null,
-            () => message.error('Unable to query server')
-        ))
+        this.debouncedSend = debounce(this.updateConfig, 3000)
     }
 
     componentDidUpdate(prevProps, prevState, snapshot) {
@@ -53,21 +46,21 @@ class Settings extends React.Component {
     }
 
     sendConfig(data) {
+        this.debouncedSend.cancel() // in case reset was called
         this.props.dispatch(postConfigData(data,
             () => message.success('Updated settings'),
             () => message.error('Unable to update settings')
-            )
-        )
+        ))
     }
 
     setInterval(val) {
         this.setState({interval: val})
-        this.send_debouce()
+        this.debouncedSend()
     }
 
     setRange(range) {
         this.setState({timeRange: range ? range : [null, null]})
-        this.send_debouce()
+        this.debouncedSend()
     }
 
     render() {

@@ -117,7 +117,17 @@ def create_course(uid: str):
         return resp
 
     course = add_course(uid, emitters, courses)
-    add_course_job(scheduler, course, (start_time, end_time, wait_time), jitter)
+    if course:
+        add_course_job(scheduler, course, (start_time, end_time, wait_time), jitter)
+    else:
+        course = courses[uid]
+
+    if pause := request.values.get('pause'):
+        if pause == 'true':
+            course.pause_job()
+        elif pause == 'false':
+            course.resume_job()
+
     return CourseEncoder().encode(course), 201
 
 
@@ -126,24 +136,23 @@ def create_course(uid: str):
 def remove_course_id(uid: str):
     if resp := undetected_resp(uid):
         return resp
+    course = remove_course(uid, courses)
+    return CourseEncoder().encode(course)
 
-    remove_course(uid, courses)
-    return 'course id {} successfully removed'.format(uid)
 
-
-@app.route(API + '/courses/<uid>/pause', methods=['POST'])
-@login_required
-def pause_course(uid: str):
-    if resp := undetected_resp(uid):
-        return resp
-
-    course = courses[uid]
-    if request.values['status'] == 'true':
-        course.pause_job()
-    if request.values['status'] == 'false':
-        course.resume_job()
-
-    return {'status': course.paused}
+# @app.route(API + '/courses/<uid>/pause', methods=['POST'])
+# @login_required
+# def pause_course(uid: str):
+#     if resp := undetected_resp(uid):
+#         return resp
+#
+#     course = courses[uid]
+#     if request.values['status'] == 'true':
+#         course.pause_job()
+#     if request.values['status'] == 'false':
+#         course.resume_job()
+#
+#     return {'status': course.paused}
 
 
 @app.route(API + '/login_status', methods=['GET'])

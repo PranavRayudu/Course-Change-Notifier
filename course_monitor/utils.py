@@ -117,9 +117,11 @@ def remove_courses(courses: {}):
         remove_course(uid, courses)
 
 
-def remove_course(uid: str, courses: {}):
+def remove_course(uid: str, courses: {}) -> Course:
+    course = None
     if uid in courses:
-        remove_course_job(courses.pop(uid))
+        remove_course_job(course := courses.pop(uid))
+    return course
 
 
 def remove_courses_from_jobs(courses: {}):
@@ -128,15 +130,7 @@ def remove_courses_from_jobs(courses: {}):
 
 
 def remove_course_job(course: Course):
-    if course.job:
-        course.job.remove()
-        course.job = None
-    if course.start_job:
-        course.start_job.remove()
-        course.start_job = None
-    if course.end_job:
-        course.end_job.remove()
-        course.end_job = None
+    course.remove_job()
 
 
 def build_emitters(sem_id: str) -> []:

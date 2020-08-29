@@ -1,8 +1,8 @@
 import React from 'react';
-import {Input, Space, Card, Form, Button, message} from "antd";
-import AppStyles from "../app.module.scss";
 import {connect} from "react-redux";
+import {Input, Space, Card, Form, Button, message} from "antd";
 import {postUserLogin} from "../store/actions";
+import AppStyles from "../app.module.scss";
 
 const layout = {
     labelCol: {span: 8},

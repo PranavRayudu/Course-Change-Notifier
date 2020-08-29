@@ -24,7 +24,7 @@ class CourseEncoder(JSONEncoder):
                 "abbr": obj.code,
                 "title": obj.title,
                 "prof": obj.prof,
-                "status":  obj.status if obj.valid else 'invalid',
+                "status": obj.status if obj.valid else 'invalid',
                 "paused": obj.paused
             }
         return json.JSONEncoder.default(self, obj)
@@ -122,3 +122,14 @@ class Course:
         if self.job:
             self.job.resume()
         self.paused = False
+
+    def remove_job(self):
+        if self.job:
+            self.job.remove()
+        if self.start_job:
+            self.start_job.remove()
+        if self.end_job:
+            self.end_job.remove()
+        self.job = None
+        self.start_job = None
+        self.end_job = None

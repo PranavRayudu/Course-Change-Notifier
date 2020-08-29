@@ -1,6 +1,6 @@
-import React, {useEffect, useState} from 'react';
-import {message, Modal} from "antd";
+import React from 'react';
 import {connect} from "react-redux";
+import {message, Modal} from "antd";
 import {postBrowserLogin} from "../store/actions";
 
 function BrowserLogin({dispatch, success, loading}) {
