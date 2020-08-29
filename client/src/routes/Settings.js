@@ -71,7 +71,7 @@ class Settings extends React.Component {
                     <Control label={"Refresh Period"} control={
                         <span><InputNumber
                             min={1}
-                            step={10}
+                            step={30}
                             value={this.state.interval}
                             onChange={this.setInterval}
                         />&nbsp;sec</span>}/>

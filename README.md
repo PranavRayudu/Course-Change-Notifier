@@ -6,7 +6,9 @@ This requires Python 3.8+, Google Chrome, and Selenium Chrome drivers.
 ## Get Started
 ```.commandline
 git clone https://github.com/PranavRayudu/Course-Change-Notifier.git
-pip install -r requirements.txt
+pip install pipenv
+pipenv install
+pipenv shell
 ```
 
 Download the webdriver of your favorite browser (only Chrome is supported right now, change ``webdriver.Chrome()`` to desired browser) and add it to the PATH variable or place it in this project folder. 

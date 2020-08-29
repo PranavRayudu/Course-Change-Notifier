@@ -1,5 +1,6 @@
 import React from 'react'
 import {connect} from 'react-redux'
+import moment from "moment";
 import {Button, Card, Form, Input, message, Space, Table, Tag} from 'antd'
 import {green, grey, red, yellow} from '@ant-design/colors'
 import {CaretRightOutlined, DeleteOutlined, PauseOutlined, PlusOutlined, ReloadOutlined,} from '@ant-design/icons'
@@ -18,6 +19,23 @@ const tagColors = {
     'closed': red.primary,
     'cancelled': grey.primary,
     'invalid': grey.primary,
+}
+
+const within = (a, b) => {
+    let now = moment()
+    if (a && b) {
+        if (a.isAfter(b)) { // reverse order, add to b
+            if (now.isBefore(b)) {
+                a.subtract(1, 'days')
+            } else {
+                b.add(1, 'days')
+            }
+        }
+        return now.isBetween(a, b)
+    }
+
+    return true
+
 }
 
 
@@ -123,22 +141,19 @@ class Courses extends React.Component {
     }
 
     render() {
-        // rowSelection object indicates the need for row selection
         const rowSelection = {
             onChange: (selectedRowKeys, selectedRows) => {
                 this.setState({selected: selectedRows})
             },
-
-            // getCheckboxProps: record => ({
-            //     disabled: record.name === 'Disabled User',
-            //     name: record.name,
-            // }),
         };
 
         let tableHeader = <div className={AppStyles.heading}>
-            <h3>Tracking {this.state.data.length}&nbsp;
-                <Pluralize count={this.state.data.length}
-                           word={"Course"}/></h3>
+            <h3>Tracking {this.props.data.length}&nbsp;
+                <Pluralize count={this.state.data.length} word={"Course"}/>&nbsp;&nbsp;
+                {within(...Object.values(this.props.timeRange)) ?
+                    <Tag color={"success"} style={{marginBottom: 3}}>Running</Tag> :
+                    <Tag color={"warning"} style={{marginBottom: 3}}>Not Running</Tag>}
+            </h3>
 
             <Space>
                 <Form onFinish={this.handleSubmit} layout={"inline"}>
@@ -189,8 +204,6 @@ class Courses extends React.Component {
                     loading={this.props.loading}
                     pagination={false}
                     scroll={{x: 700}}
-                    // bordered
-                    // title={() => tableHeader}
                 />
             </Space>
         </Card>;
@@ -202,6 +215,7 @@ const mapStateToProps = state => {
         sid: state.sid,
         data: state.courses,
         loading: state.coursesLoading,
+        timeRange: state.timeRange
     }
 }
 

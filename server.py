@@ -68,7 +68,8 @@ def config():
             if interval := request.values.get('interval'):
                 wait_time = int(interval)
                 updated |= True
-            if st := (request.values.get('start')) and (en := request.values.get('end')):
+            st, en = request.values.get('start'), request.values.get('end')
+            if st and en:
                 if st == 'none' and en == 'none':
                     start_time, end_time = None, None
                 else:
@@ -138,21 +139,6 @@ def remove_course_id(uid: str):
         return resp
     course = remove_course(uid, courses)
     return CourseEncoder().encode(course)
-
-
-# @app.route(API + '/courses/<uid>/pause', methods=['POST'])
-# @login_required
-# def pause_course(uid: str):
-#     if resp := undetected_resp(uid):
-#         return resp
-#
-#     course = courses[uid]
-#     if request.values['status'] == 'true':
-#         course.pause_job()
-#     if request.values['status'] == 'false':
-#         course.resume_job()
-#
-#     return {'status': course.paused}
 
 
 @app.route(API + '/login_status', methods=['GET'])
