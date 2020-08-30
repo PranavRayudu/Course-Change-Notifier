@@ -225,8 +225,7 @@ class Courses extends React.Component {
                     dataSource={this.props.data}
                     loading={this.props.loading}
                     pagination={false}
-                    scroll={{x: 700}}
-                />
+                    scroll={{x: 700}}/>
             </Space>
         </Card>;
     }
