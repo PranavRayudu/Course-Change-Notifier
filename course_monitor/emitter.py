@@ -30,6 +30,9 @@ class NotificationEmitter:
     def __dispatch_emit(self, closed_classes: dict, opened_classes: dict):
         pass
 
+    def simple_msg(self, msg: str):
+        pass
+
     def emit(self, classes: dict):
         if len(classes) == 0:
             return
@@ -50,6 +53,9 @@ class ConsoleEmitter(NotificationEmitter):
             print('Here are the classes that opened up')
             for uid, (code, prof, prev, new) in opened_classes.items():
                 print('{} by {} changed from {} to {}!'.format(code, prof, prev, new))
+
+    def simple_msg(self, msg: str):
+        print(msg)
 
 
 class SlackEmitter(NotificationEmitter):
@@ -130,3 +136,8 @@ class SlackEmitter(NotificationEmitter):
                 channel=self.channel,
                 text='Some course(s) have changed status!',
                 blocks=self.__build_blocks(closed_classes, opened_classes))
+
+    def simple_msg(self, msg: str):
+        self.client.chat_postMessage(
+            channel=self.channel,
+            text=msg)

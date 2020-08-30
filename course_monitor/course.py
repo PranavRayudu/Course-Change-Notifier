@@ -115,6 +115,10 @@ class Course:
         for emitter in self.emitters:
             emitter.emit(changes)
 
+    def __dispatch_emitters_simple(self, msg: str):
+        for emitter in self.emitters:
+            emitter.simple_msg(msg)
+
     def check(self):
         if not self.valid:
             return
@@ -126,8 +130,14 @@ class Course:
 
             s_rank = statuses.index(self.status)
             p_rank = statuses.index(self.prev_status)
-            if self.register and self.valid and s_rank < 5 and s_rank < p_rank:
+            if self.register and self.register != 'success' and self.valid and s_rank < 5 and s_rank < p_rank:
                 self.register = Course.Monitor.register(self.uid)
+                if self.register == 'fail':
+                    self.__dispatch_emitters_simple(
+                        'Failed attempted registration for {}: {}'.format(self.uid, self.code))
+                elif self.register == 'success':
+                    self.__dispatch_emitters_simple(
+                        'Successfully registered for {}: {}!'.format(self.uid, self.code))
 
     def pause_job(self):
         if self.job:

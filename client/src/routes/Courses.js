@@ -1,7 +1,7 @@
 import React from 'react'
 import {connect} from 'react-redux'
 import moment from "moment";
-import {Button, Card, Form, Input, message, Space, Switch, Table, Tag} from 'antd'
+import {Button, Card, Form, Input, message, Skeleton, Space, Switch, Table, Tag} from 'antd'
 import {green, grey, red, yellow} from '@ant-design/colors'
 import {CaretRightOutlined, DeleteOutlined, PauseOutlined, PlusOutlined, ReloadOutlined,} from '@ant-design/icons'
 
@@ -54,17 +54,17 @@ class Courses extends React.Component {
         {
             title: 'Abbr.',
             dataIndex: 'abbr',
-            render: text => text ? text : '...',
+            render: text => text ? text : <Skeleton title={false} paragraph={{rows: 1}}/>,
         },
         {
             title: 'Title',
             dataIndex: 'title',
-            render: text => text ? text : '...',
+            render: text => text ? text : <Skeleton title={false} paragraph={{rows: 1}}/>,
         },
         {
             title: 'Professor',
             dataIndex: 'prof',
-            render: text => text ? text : '...',
+            render: text => text ? text : <Skeleton title={false} paragraph={{rows: 1}}/>,
         },
         {
             title: 'Status',
@@ -76,6 +76,16 @@ class Courses extends React.Component {
                     <Tag color={registerColors[row.register]}>registration {row.register}</Tag>}
                 </>
             },
+        },
+        {
+            title: 'Register',
+            dataIndex: 'register',
+            render: (text, row) => {
+                let disabled = row.status === 'invalid'// || !this.state.running
+                return <Switch disabled={disabled}
+                               checked={text}
+                               onChange={() => this.toggleCourseRegister(row.uid)}/>
+            }
         },
         {
             dataIndex: 'paused',
@@ -90,22 +100,6 @@ class Courses extends React.Component {
                             onClick={() => this.pauseCourse(row.uid)}/>
             },
         },
-        {
-            title: 'Register',
-            dataIndex: 'register',
-            render: (text, row) => {
-                let disabled = row.status === 'invalid'// || !this.state.running
-                return <Switch disabled={disabled}
-                               checked={text}
-                               onChange={() => this.toggleCourseRegister(row.uid)}/>
-            }
-        },
-        // {
-        //     dataIndex: 'uid',
-        //     render: (text, row) => row.status !== 'invalid' && <a
-        //         href={`https://utdirect.utexas.edu/registration/registration.WBX?s_ccyys=${this.props.sid}&s_af_unique=${text}`}
-        //         target="_blank" rel="noopener noreferrer">Register</a>,
-        // },
     ];
 
     constructor(props) {
@@ -232,11 +226,6 @@ class Courses extends React.Component {
                     loading={this.props.loading}
                     pagination={false}
                     scroll={{x: 700}}
-
-                    // expandable={{
-                    //     expandedRowRender: (row) => <p style={{margin: 0}}>{row.register}</p>,
-                    //     rowExpandable: (row) => row.register
-                    // }}
                 />
             </Space>
         </Card>;

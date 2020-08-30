@@ -1,5 +1,3 @@
-from time import sleep
-
 from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
 from selenium.webdriver.support.wait import WebDriverWait
 
@@ -122,7 +120,7 @@ class Monitor:
             waitlist[0].click()
             click_submit()
         status_msg = Monitor.browser.find_element_by_id('n_message').text
-        return 'fail' if 'Add was unsuccessful' in status_msg else 'success'
+        return 'fail' if 'unsuccessful' in status_msg else 'success'
 
     @staticmethod
     def __goto_page(link: str):
