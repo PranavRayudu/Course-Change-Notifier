@@ -46,7 +46,7 @@ function App({dispatch, logged, loading, sid}) {
             null,
             () => message.error('unable to contact server')
         ))
-        dispatch(fetchConfigData(
+        if (logged) dispatch(fetchConfigData(
             null,
             () => message.error('unable to contact server')
         ))

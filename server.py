@@ -203,7 +203,9 @@ def login():
 @app.route("/<path>")
 @login_required
 def index(path):
-    return send_from_directory(app.static_folder, 'index.html')
+    if '.' not in path:
+        return send_from_directory(app.static_folder, 'index.html')
+    return send_from_directory(app.static_folder, path)
 
 
 scheduler.start()
