@@ -88,6 +88,15 @@ html, body, :global(#root) {
   }
 }
 
+.loginCard {
+  width: 340px;
+  margin: auto;
+
+  @include sm {
+    width: 100%;
+  }
+}
+
 :global(.ant-skeleton-paragraph) {
   margin-bottom: 0;
 }

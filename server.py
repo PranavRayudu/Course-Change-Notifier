@@ -193,7 +193,7 @@ def login():
     if not user or not user.check_password(passwd):
         return {'user': False}, 401
 
-    login_user(user, remember=True)
+    login_user(user, remember=request.form.get('remember') == 'true')
     browser_logged_in = Monitor.logged_in() and not Monitor.login_fail
     return {'browser': browser_logged_in,
             'user': True}
