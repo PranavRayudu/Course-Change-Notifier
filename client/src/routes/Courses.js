@@ -13,9 +13,9 @@ import Pluralize from '../components/Pluralize'
 const tagColors = {
     'open': green.primary,
     'open; reserved': green.primary,
-    'reserved': yellow.primary,
-    'waitlisted': yellow.primary,
-    'waitlisted; reserved': yellow.primary,
+    'reserved': yellow[6],
+    'waitlisted': yellow[6],
+    'waitlisted; reserved': yellow[6],
     'closed': red.primary,
     'cancelled': grey.primary,
     'invalid': grey.primary,
@@ -80,7 +80,6 @@ class Courses extends React.Component {
             },
         },
         {
-            // title: 'Action',
             dataIndex: 'uid',
             render: (text, row) => row.status !== 'invalid' && <a
                 href={`https://utdirect.utexas.edu/registration/registration.WBX?s_ccyys=${this.props.sid}&s_af_unique=${text}`}

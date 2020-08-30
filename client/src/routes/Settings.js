@@ -89,7 +89,6 @@ class Settings extends React.Component {
     }
 }
 
-// export default Settings
 const mapStateToProps = state => {
     return {
         interval: state.interval,

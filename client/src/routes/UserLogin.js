@@ -1,6 +1,6 @@
 import React from 'react';
 import {connect} from "react-redux";
-import {Input, Space, Card, Form, Button, message} from "antd";
+import {Button, Card, Form, Input, message, Space} from "antd";
 import {postUserLogin} from "../store/actions";
 import AppStyles from "../app.module.scss";
 
@@ -52,7 +52,6 @@ function UserLogin({dispatch, loading}) {
 const mapStateToProps = state => {
     return {
         loading: state.browserLoading,
-        // success: state.userLogin,
     }
 }
 

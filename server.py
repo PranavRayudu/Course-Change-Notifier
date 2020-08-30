@@ -132,9 +132,6 @@ def create_course(uid: str):
         elif pause == 'false':
             course.resume_job()
 
-    if os.getenv('FLASK_ENV') == 'development':
-        scheduler.print_jobs()
-
     return CourseEncoder().encode(course), 201
 
 
@@ -144,10 +141,6 @@ def remove_course_id(uid: str):
     if resp := undetected_resp(uid):
         return resp
     course = remove_course(uid, courses)
-
-    if os.getenv('FLASK_ENV') == 'development':
-        scheduler.print_jobs()
-
     return CourseEncoder().encode(course)
 
 
