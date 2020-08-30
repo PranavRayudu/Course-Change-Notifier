@@ -7,6 +7,15 @@ from json.encoder import JSONEncoder
 # from course_monitor import Monitor
 
 debug = False
+statuses = [
+    'open',
+    'open; reserved',
+    'reserved',
+    'waitlisted',
+    'waitlisted; reserved',
+    'closed',
+    'cancelled'
+]
 
 
 def d_print(msg):
@@ -25,6 +34,7 @@ class CourseEncoder(JSONEncoder):
                 "title": obj.title,
                 "prof": obj.prof,
                 "status": obj.status if obj.valid else 'invalid',
+                "register": obj.register,
                 "paused": obj.paused
             }
         return json.JSONEncoder.default(self, obj)
@@ -39,6 +49,7 @@ class Course:
         self.code, self.title = None, None
         self.prof = None
         self.prev_status, self.status = None, None
+        self.register = None
         self.paused = False
         self.valid = True
         self.job = None
@@ -112,6 +123,11 @@ class Course:
         self.status = self.__update_course(Course.Monitor.get_course_page(self.uid))
         if self.prev_status:
             self.__dispatch_emitters(self.__changes())
+
+            s_rank = statuses.index(self.status)
+            p_rank = statuses.index(self.prev_status)
+            if self.register and self.valid and s_rank < 5 and s_rank < p_rank:
+                self.register = Course.Monitor.register(self.uid)
 
     def pause_job(self):
         if self.job:

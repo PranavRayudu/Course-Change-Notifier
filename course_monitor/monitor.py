@@ -1,3 +1,5 @@
+from time import sleep
+
 from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
 from selenium.webdriver.support.wait import WebDriverWait
 
@@ -20,9 +22,15 @@ class Monitor:
             .format(sid, uid)
 
     @staticmethod
+    def __register_link_builder(sid: str, uid: str):
+        return 'https://utdirect.utexas.edu/registration/registration.WBX?' \
+               's_ccyys={}&s_af_unique={}'.format(sid, uid)
+
+    @staticmethod
     def logged_in() -> bool:
-        return 'UT Austin Registrar:' in Monitor.browser.title and \
-               'course search' in Monitor.browser.title
+        return ('UT Austin Registrar:' in Monitor.browser.title and
+                'course search' in Monitor.browser.title) or \
+               'Registration' in Monitor.browser.title
 
     @staticmethod
     def __do_login_seq() -> bool:
@@ -96,6 +104,25 @@ class Monitor:
         Monitor.__goto_page("https://utdirect.utexas.edu/apps/registrar/course_schedule/{}/"
                             .format(Monitor.sid))
         return Monitor.logged_in()
+
+    @staticmethod
+    def register(uid: str, add_waitlist=True):
+
+        def click_submit():
+            form = Monitor.browser.find_element_by_id('regform')
+            submit = form.find_element_by_name('s_submit')
+            submit.click()
+
+        Monitor.__goto_page(Monitor.__register_link_builder(Monitor.sid, uid))
+
+        click_submit()
+
+        waitlist = Monitor.browser.find_elements_by_id('s_request_STAWL')
+        if len(waitlist) > 0 and add_waitlist:
+            waitlist[0].click()
+            click_submit()
+        status_msg = Monitor.browser.find_element_by_id('n_message').text
+        return 'fail' if 'Add was unsuccessful' in status_msg else 'success'
 
     @staticmethod
     def __goto_page(link: str):

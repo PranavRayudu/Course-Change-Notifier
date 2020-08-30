@@ -131,6 +131,11 @@ def create_course(uid: str):
             course.pause_job()
         elif pause == 'false':
             course.resume_job()
+    if register := request.values.get('register'):
+        if register == 'true':
+            course.register = 'register'
+        elif register == 'false':
+            course.register = None
 
     return CourseEncoder().encode(course), 201
 

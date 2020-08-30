@@ -1,7 +1,7 @@
 import React from 'react'
 import {connect} from 'react-redux'
 import moment from "moment";
-import {Button, Card, Form, Input, message, Space, Table, Tag} from 'antd'
+import {Button, Card, Form, Input, message, Space, Switch, Table, Tag} from 'antd'
 import {green, grey, red, yellow} from '@ant-design/colors'
 import {CaretRightOutlined, DeleteOutlined, PauseOutlined, PlusOutlined, ReloadOutlined,} from '@ant-design/icons'
 
@@ -19,6 +19,11 @@ const tagColors = {
     'closed': red.primary,
     'cancelled': grey.primary,
     'invalid': grey.primary,
+}
+
+const registerColors = {
+    'success': green.primary,
+    'fail': red.primary
 }
 
 const within = (a, b) => {
@@ -64,7 +69,13 @@ class Courses extends React.Component {
         {
             title: 'Status',
             dataIndex: 'status',
-            render: text => <Tag color={tagColors[text]}>{text}</Tag>,
+            render: (text, row) => {
+                return <>
+                    <Tag color={tagColors[text]}>{text}</Tag>
+                    {row.register && row.register !== 'register' &&
+                    <Tag color={registerColors[row.register]}>registration {row.register}</Tag>}
+                </>
+            },
         },
         {
             dataIndex: 'paused',
@@ -80,11 +91,21 @@ class Courses extends React.Component {
             },
         },
         {
-            dataIndex: 'uid',
-            render: (text, row) => row.status !== 'invalid' && <a
-                href={`https://utdirect.utexas.edu/registration/registration.WBX?s_ccyys=${this.props.sid}&s_af_unique=${text}`}
-                target="_blank" rel="noopener noreferrer">Register</a>,
+            title: 'Register',
+            dataIndex: 'register',
+            render: (text, row) => {
+                let disabled = row.status === 'invalid'// || !this.state.running
+                return <Switch disabled={disabled}
+                               checked={text}
+                               onChange={() => this.toggleCourseRegister(row.uid)}/>
+            }
         },
+        // {
+        //     dataIndex: 'uid',
+        //     render: (text, row) => row.status !== 'invalid' && <a
+        //         href={`https://utdirect.utexas.edu/registration/registration.WBX?s_ccyys=${this.props.sid}&s_af_unique=${text}`}
+        //         target="_blank" rel="noopener noreferrer">Register</a>,
+        // },
     ];
 
     constructor(props) {
@@ -146,6 +167,11 @@ class Courses extends React.Component {
         this.props.dispatch(postCourse(uid, {pause: false}))
     }
 
+    toggleCourseRegister(uid) {
+        let course = this.props.data.find(c => c.uid === uid)
+        this.props.dispatch(postCourse(uid, {register: !course.register}))
+    }
+
     render() {
         const rowSelection = {
             onChange: (selectedRowKeys, selectedRows) => {
@@ -154,8 +180,8 @@ class Courses extends React.Component {
         };
 
         let tableHeader = <div className={AppStyles.heading}>
-            <h3>Tracking {this.props.data.length} <Pluralize count={this.props.data.length}
-                                                             word={"Course"}/>&nbsp;&nbsp;
+            <h3>Tracking&nbsp;{this.props.data.length}&nbsp;
+                <Pluralize count={this.props.data.length} word={"Course"}/>&nbsp;&nbsp;
                 {this.state.running ?
                     <Tag color={"success"} style={{marginBottom: 3}}>Running</Tag> :
                     <Tag color={"warning"} style={{marginBottom: 3}}>Not Running</Tag>}
@@ -169,24 +195,26 @@ class Courses extends React.Component {
                                pattern={"[0-9]{5}"}
                                value={this.state.uid}
                                onChange={e => this.setState({uid: e.target.value})}
-                               style={{maxWidth: "100px"}}
-                        />
+                               style={{maxWidth: "100px"}}/>
                         <Button type={"primary"}
-                                htmlType={'submit'}>
+                                htmlType={'submit'}
+                                icon={<PlusOutlined/>}>
                             <span className={AppStyles.hideSm}>Add</span>
-                            <PlusOutlined/>
                         </Button>
                     </Input.Group>
                 </Form>
 
                 <Button type={"secondary"}
-                        onClick={this.refreshData}>
-                    <span className={AppStyles.hideSm}>Refresh</span><ReloadOutlined/>
+                        onClick={this.refreshData}
+                        loading={this.props.loading}
+                        icon={<ReloadOutlined/>}>
+                    <span className={AppStyles.hideSm}>Refresh</span>
                 </Button>
                 <Button type={"danger"}
                         onClick={() => this.deleteCourses(this.state.selected)}
-                        disabled={this.state.selected.length === 0}>
-                    <span className={AppStyles.hideSm}>Delete</span><DeleteOutlined/>
+                        disabled={this.state.selected.length === 0}
+                        icon={<DeleteOutlined/>}>
+                    <span className={AppStyles.hideSm}>Delete</span>
                 </Button>
             </Space>
         </div>
@@ -204,6 +232,11 @@ class Courses extends React.Component {
                     loading={this.props.loading}
                     pagination={false}
                     scroll={{x: 700}}
+
+                    // expandable={{
+                    //     expandedRowRender: (row) => <p style={{margin: 0}}>{row.register}</p>,
+                    //     rowExpandable: (row) => row.register
+                    // }}
                 />
             </Space>
         </Card>;
