@@ -51,7 +51,7 @@ function UserLogin({dispatch, loading}) {
 
 const mapStateToProps = state => {
     return {
-        loading: state.browserLoading,
+        loading: state.userLoading,
     }
 }
 

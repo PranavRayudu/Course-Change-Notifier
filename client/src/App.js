@@ -42,7 +42,7 @@ function App({dispatch, logged, loading, sid}) {
     const path = useLocation().pathname
 
     useEffect(() => {
-        dispatch(fetchLoginData(
+        if (!logged) dispatch(fetchLoginData(
             null,
             () => message.error('unable to contact server')
         ))
@@ -50,7 +50,7 @@ function App({dispatch, logged, loading, sid}) {
             null,
             () => message.error('unable to contact server')
         ))
-    }, [dispatch, path])
+    }, [dispatch, logged, path])
 
     const renderRedirect = () => {
         if (!loading && !logged && path !== '/login')
