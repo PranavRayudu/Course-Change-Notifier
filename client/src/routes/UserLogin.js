@@ -1,7 +1,8 @@
-import React, {useState} from 'react';
-import {Input, Space, Card, Form, Button, message} from "antd";
+import React from 'react';
+import {connect} from "react-redux";
+import {Button, Card, Form, Input, message, Space} from "antd";
+import {postUserLogin} from "../store/actions";
 import AppStyles from "../app.module.scss";
-import {Redirect} from "react-router-dom";
 
 const layout = {
     labelCol: {span: 8},
@@ -12,29 +13,18 @@ const tailLayout = {
     wrapperCol: {offset: 8, span: 16},
 }
 
-function UserLogin() {
-
-    const [redirect, setRedirect] = useState(null)
+function UserLogin({dispatch, loading}) {
 
     const onFinish = values => {
         let formData = new FormData()
         formData.append('id', values.id)
         formData.append('password', values.password)
-
-        fetch(`/login`, {
-            method: 'POST',
-            body: formData,
-        }).then(res => {
-            if (res.status !== 200)
-                throw new Error('login failed')
-            setRedirect('/')
-        }).catch((err) => {
-            message.error('Login attempt failed')
-        })
+        dispatch(postUserLogin(formData,
+            () => message.success('Successfully logged in'),
+            () => message.error('Unable to login in')))
     }
 
     return <Card bordered={false} style={{width: '340px', margin: 'auto'}}>
-        {redirect && <Redirect to={redirect}/>}
         <Space direction={"vertical"} style={{width: "100%"}}>
             <div className={AppStyles.heading}>
                 <Space direction={"vertical"}>
@@ -49,7 +39,7 @@ function UserLogin() {
                             <Input.Password/>
                         </Form.Item>
                         <Form.Item {...tailLayout}>
-                            <Button type={"primary"} htmlType={"submit"}>Submit</Button>
+                            <Button type={"primary"} loading={loading} htmlType={"submit"}>Submit</Button>
                         </Form.Item>
                     </Form>
                 </Space>
@@ -58,6 +48,12 @@ function UserLogin() {
     </Card>;
 }
 
-export default UserLogin;
 
+const mapStateToProps = state => {
+    return {
+        loading: state.browserLoading,
+    }
+}
+
+export default connect(mapStateToProps)(UserLogin);
 

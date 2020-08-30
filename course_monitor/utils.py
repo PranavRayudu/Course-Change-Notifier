@@ -80,7 +80,7 @@ def add_course_job(scheduler: BackgroundScheduler, course: Course, times: tuple,
     course_check_id, course_start_id, course_end_id = get_course_job_ids(course.uid)
     start_time, end_time, wait_time = times
 
-    if is_time_between(start_time, end_time):
+    if added := is_time_between(start_time, end_time):
         # noinspection PyTypeChecker
         course.job = scheduler.add_job(
             course.check,
@@ -103,12 +103,13 @@ def add_course_job(scheduler: BackgroundScheduler, course: Course, times: tuple,
             args=(scheduler, course, times, jitter),
             id=course_start_id,
             run_date=start_date)
-        course.end_job = scheduler.add_job(
-            remove_course_job,
-            args=(course,),
-            trigger='date',
-            id=course_end_id,
-            run_date=end_date)
+        if added:
+            course.end_job = scheduler.add_job(
+                remove_course_job,
+                args=(course,),
+                trigger='date',
+                id=course_end_id,
+                run_date=end_date)
     return course.job
 
 
@@ -117,9 +118,11 @@ def remove_courses(courses: {}):
         remove_course(uid, courses)
 
 
-def remove_course(uid: str, courses: {}):
+def remove_course(uid: str, courses: {}) -> Course:
     if uid in courses:
-        remove_course_job(courses.pop(uid))
+        course = courses.pop(uid)
+        remove_course_job(course)
+        return course
 
 
 def remove_courses_from_jobs(courses: {}):
@@ -128,15 +131,7 @@ def remove_courses_from_jobs(courses: {}):
 
 
 def remove_course_job(course: Course):
-    if course.job:
-        course.job.remove()
-        course.job = None
-    if course.start_job:
-        course.start_job.remove()
-        course.start_job = None
-    if course.end_job:
-        course.end_job.remove()
-        course.end_job = None
+    course.remove_job()
 
 
 def build_emitters(sem_id: str) -> []:

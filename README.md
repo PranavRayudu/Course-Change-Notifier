@@ -1,11 +1,14 @@
 # Course Change Notifier
 Course Change Notifier is a simple script that allows users to run a course availability checker for UT Austin. It runs in the background and notifies user via Slack if a desired course opens up in the schedule.
+> ``local.py`` is used to run on the command line while ``server.py`` is run alongside a React project in the ``/client`` folder. 
 This requires Python 3.8+, Google Chrome, and Selenium Chrome drivers.
 
 ## Get Started
 ```.commandline
 git clone https://github.com/PranavRayudu/Course-Change-Notifier.git
-pip install -r requirements.txt
+pip install pipenv
+pipenv install
+pipenv shell
 ```
 
 Download the webdriver of your favorite browser (only Chrome is supported right now, change ``webdriver.Chrome()`` to desired browser) and add it to the PATH variable or place it in this project folder. 
@@ -56,7 +59,7 @@ The command line can be used to issue arguments to the scheduler:
 - ``add <uid>`` adds a course to be tracker and course list
 - ``remove <uid>`` will stop that course from being tracker and from the course list
 - ``pause <uid>`` pauses a course from being tracked (but keeps it in the course list)
-= ``resume <uid>`` resumes a paused course to continue tracking
+- ``resume <uid>`` resumes a paused course to continue tracking
 - ``list`` will list all courses currently being tracked and 
 - ``clear`` will remove all courses from being tracked
 - ``exit`` stops and exists the script
@@ -69,7 +72,11 @@ python local.py --sem "Fall 2020" --uids 37960 37965 37970 37975 --headless
 
 #### 6. Use ``server.py`` to use web gui (experimental)
 Add ``FLASK_ENV=development`` and ``SECRET_KEY=<random hash>`` to your ``.env`` file
-Run ``server.py`` and React project in ``/client`` together 
+Set up web gui:
+- ``cd client``
+- ``npm install``
+- ``npm run``
+Then ``python server.py`` from root folder 
 
 ## Todo
 - [x] Add direct links to add courses from every message

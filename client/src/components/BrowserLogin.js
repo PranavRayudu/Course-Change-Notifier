@@ -1,33 +1,14 @@
-import React, {useEffect, useState} from 'react';
+import React from 'react';
+import {connect} from "react-redux";
 import {message, Modal} from "antd";
+import {postBrowserLogin} from "../store/actions";
 
-function BrowserLogin() {
-
-    const [failed, setFailed] = useState(false)
-    const [loading, setLoading] = useState(false)
-
-    useEffect(() => {
-        setLoading(true)
-        fetch(`/api/v1/login_status`, {
-            method: 'GET',
-        }).then(res => res.json()).then(data => {
-            setFailed(!data.browser)
-        }).catch((err) => {
-            setFailed(true)
-        }).finally(() => setLoading(false))
-    }, [])
-
+function BrowserLogin({dispatch, success, loading}) {
     const sendLogin = () => {
-        setLoading(true)
-        fetch(`/api/v1/browser_login`, {
-            method: 'POST',
-        }).then(res => res.json()).then(data => {
-            if (data.status) message.success('login successful')
-            else message.error('unsuccessful login')
-            setFailed(!data.status)
-        }).catch((err) => {
-            message.error('unsuccessful login')
-        }).finally(() => setLoading(false))
+        dispatch(postBrowserLogin(
+            () => message.success('login successful'),
+            () => message.error('unsuccessful login')
+        ))
     }
 
     return <Modal
@@ -35,7 +16,7 @@ function BrowserLogin() {
         okText="Attempt login"
         onOk={sendLogin}
         cancelButtonProps={{style: {display: "None"}}}
-        visible={failed}
+        visible={!success}
         closable={false}
         confirmLoading={loading}>
         You need to log into UT to continue checking for courses. Press OK to attempt login (must accept push
@@ -43,6 +24,12 @@ function BrowserLogin() {
     </Modal>
 }
 
-export default BrowserLogin;
+const mapStateToProps = state => {
+    return {
+        success: state.browserLogin,
+        loading: state.browserLoading,
+    }
+}
 
+export default connect(mapStateToProps)(BrowserLogin);
 

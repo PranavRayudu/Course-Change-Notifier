@@ -65,34 +65,34 @@ def config():
             if sid := request.values.get('sid'):
                 Monitor.sid = build_sem_code(sid)
                 updated |= True
-                print('updated sid')
             if interval := request.values.get('interval'):
                 wait_time = int(interval)
                 updated |= True
-                print('updated interval')
-            if st := (request.values.get('start')) and (en := request.values.get('end')):
+            st, en = request.values.get('start'), request.values.get('end')
+            if st and en:
                 if st == 'none' and en == 'none':
                     start_time, end_time = None, None
                 else:
                     start_time, end_time = get_time(st), get_time(en)
-                print('updated range')
                 updated |= True
         except Exception:
             Monitor.sid, wait_time, start_time, end_time = old  # restore everything
             return 'failed', 500
 
         if not updated:
-            print('resetting')
             reset()
 
         scheduler.remove_all_jobs()
         for course in courses.values():
             add_course_job(scheduler, course, (start_time, end_time, wait_time), jitter)
 
+    if os.getenv('FLASK_ENV') == 'development':
+        scheduler.print_jobs()
+
     return {'sid': str(Monitor.sid),
             'interval': str(wait_time),
-            'start': start_time.strftime('%H:%M') if start_time else None,
-            'end': end_time.strftime('%H:%M') if end_time else None}
+            'start': start_time.strftime('%H%M') if start_time else None,
+            'end': end_time.strftime('%H%M') if end_time else None}
 
 
 @app.route(API + '/courses', methods=['GET'])
@@ -121,8 +121,18 @@ def create_course(uid: str):
         return resp
 
     course = add_course(uid, emitters, courses)
-    add_course_job(scheduler, course, (start_time, end_time, wait_time), jitter)
-    return 'course id {} successfully added'.format(uid), 201
+    if course:
+        add_course_job(scheduler, course, (start_time, end_time, wait_time), jitter)
+    else:
+        course = courses[uid]
+
+    if pause := request.values.get('pause'):
+        if pause == 'true':
+            course.pause_job()
+        elif pause == 'false':
+            course.resume_job()
+
+    return CourseEncoder().encode(course), 201
 
 
 @app.route(API + '/courses/<uid>', methods=['DELETE'])
@@ -130,24 +140,8 @@ def create_course(uid: str):
 def remove_course_id(uid: str):
     if resp := undetected_resp(uid):
         return resp
-
-    remove_course(uid, courses)
-    return 'course id {} successfully removed'.format(uid)
-
-
-@app.route(API + '/courses/<uid>/pause', methods=['POST'])
-@login_required
-def pause_course(uid: str):
-    if resp := undetected_resp(uid):
-        return resp
-
-    course = courses[uid]
-    if request.values['status'] == 'true':
-        course.pause_job()
-    if request.values['status'] == 'false':
-        course.resume_job()
-
-    return {'status': course.paused}
+    course = remove_course(uid, courses)
+    return CourseEncoder().encode(course)
 
 
 @app.route(API + '/login_status', methods=['GET'])
@@ -167,7 +161,7 @@ def browser_login_action():
     login_state = JobState(str(Monitor.sid))
     login_state.listen_done(scheduler)
     login_state.wait_done()
-    return {'status': Monitor.logged_in()}
+    return {'browser': Monitor.logged_in()}
 
 
 @login_manager.user_loader
@@ -192,10 +186,12 @@ def login():
 
     user = users[user_id]
     if not user or not user.check_password(passwd):
-        return 'fail', 401
+        return {'user': False}, 401
 
     login_user(user, remember=True)
-    return 'success'
+    browser_logged_in = Monitor.logged_in() and not Monitor.login_fail
+    return {'browser': browser_logged_in,
+            'user': True}
 
 
 @app.route('/', defaults={'path': ''})

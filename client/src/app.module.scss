@@ -74,7 +74,7 @@ html, body, :global(#root) {
   display: flex;
   justify-content: space-between;
 
-  @include sm {
+  @include md {
     flex-direction: column;
   }
 }
