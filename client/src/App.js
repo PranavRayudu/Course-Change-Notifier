@@ -7,7 +7,7 @@ import {SettingOutlined} from '@ant-design/icons';
 import {fetchConfigData, fetchLoginData} from "./store/actions";
 
 import '../node_modules/antd/dist/antd.css';
-import '../node_modules/antd/dist/antd.dark.css';
+// import '../node_modules/antd/dist/antd.dark.css';
 
 import AppStyles from './app.module.scss';
 import BrowserLogin from "./components/BrowserLogin";
