@@ -3,7 +3,14 @@ import {connect} from 'react-redux'
 import moment from "moment";
 import {Button, Card, Form, Input, message, Skeleton, Space, Switch, Table, Tag} from 'antd'
 import {green, grey, red, yellow} from '@ant-design/colors'
-import {CaretRightOutlined, DeleteOutlined, PauseOutlined, PlusOutlined, ReloadOutlined,} from '@ant-design/icons'
+import {
+    CaretRightOutlined,
+    DeleteOutlined,
+    LinkOutlined,
+    PauseOutlined,
+    PlusOutlined,
+    ReloadOutlined,
+} from '@ant-design/icons'
 
 import {fetchCourseData, postCourse, unpostCourses} from "../store/actions";
 
@@ -45,9 +52,11 @@ class Courses extends React.Component {
         {
             title: 'ID',
             dataIndex: 'uid',
-            render: (text, row) =>
-                row.status === 'invalid' ? text :
-                    <a href={`https://utdirect.utexas.edu/apps/registrar/course_schedule/${this.state.sid}/${text}/`}>{text}</a>,
+            render: (text, row) => <>
+                {row.status === 'invalid' ? text :
+                    <a href={`https://utdirect.utexas.edu/apps/registrar/course_schedule/${this.props.sid}/${text}/`}>{text}</a>}
+                &nbsp; <a href={`https://utdirect.utexas.edu/registration/registration.WBX?s_ccyys=${this.props.sid}&s_af_unique=${row.uid}`} style={{verticalAlign: "center"}}><LinkOutlined /></a>
+                </>,
             sorter: (a, b) => a.uid.localeCompare(b.uid),
             sortDirections: ['descend', 'ascend'],
         },
@@ -83,8 +92,8 @@ class Courses extends React.Component {
             render: (text, row) => {
                 let disabled = row.status === 'invalid'// || !this.state.running
                 return <Switch disabled={disabled}
-                               checked={text}
-                               onChange={() => this.toggleCourseRegister(row.uid)}/>
+                           checked={text}
+                           onChange={() => this.toggleCourseRegister(row.uid)}/>
             }
         },
         {
