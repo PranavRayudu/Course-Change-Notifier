@@ -111,6 +111,7 @@ class Monitor:
             submit = form.find_element_by_name('s_submit')
             submit.click()
 
+        print("attempting to register for course {}".format(uid))
         Monitor.__goto_page(Monitor.__register_link_builder(Monitor.sid, uid))
 
         click_submit()
@@ -124,7 +125,7 @@ class Monitor:
 
     @staticmethod
     def __goto_page(link: str):
-        d_print('browser going to {}'.format(link))
+        print('browser going to {}'.format(link))
         Monitor.browser.get(link)
 
         # wait until user logs in and the courses can be seen

@@ -160,6 +160,7 @@ class Courses extends React.Component {
             () => message.success('Successfully deleted courses'),
             () => message.error('Error deleting courses')
         ))
+        this.setState({selected: []})
     }
 
     pauseCourse(uid) {

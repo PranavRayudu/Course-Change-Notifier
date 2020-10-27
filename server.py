@@ -86,13 +86,13 @@ def config():
         for course in courses.values():
             add_course_job(scheduler, course, (start_time, end_time, wait_time), jitter)
 
-    if os.getenv('FLASK_ENV') == 'development':
-        scheduler.print_jobs()
+    # if os.getenv('FLASK_ENV') == 'development':
+    scheduler.print_jobs()
 
-    return {'sid': str(Monitor.sid),
-            'interval': str(wait_time),
-            'start': start_time.strftime('%H%M') if start_time else None,
-            'end': end_time.strftime('%H%M') if end_time else None}
+    return {'sid'       : str(Monitor.sid),
+            'interval'  : str(wait_time),
+            'start'     : start_time.strftime('%H%M') if start_time else None,
+            'end'       : end_time.strftime('%H%M') if end_time else None}
 
 
 @app.route(API + '/courses', methods=['GET'])
@@ -156,7 +156,7 @@ def login_status():
 
     browser_logged_in = Monitor.logged_in() and not Monitor.login_fail
     return {'browser': browser_logged_in,
-            'user': current_user.is_authenticated}
+            'user'   : current_user.is_authenticated}
 
 
 @app.route(API + '/browser_login', methods=['POST'])
@@ -196,7 +196,7 @@ def login():
     login_user(user, remember=request.form.get('remember') == 'true')
     browser_logged_in = Monitor.logged_in() and not Monitor.login_fail
     return {'browser': browser_logged_in,
-            'user': True}
+            'user'   : True}
 
 
 @app.route('/', defaults={'path': ''})
