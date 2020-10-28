@@ -54,8 +54,8 @@ class Courses extends React.Component {
             dataIndex: 'uid',
             render: (text, row) => <>
                 {row.status === 'invalid' ? text :
-                    <a href={`https://utdirect.utexas.edu/apps/registrar/course_schedule/${this.props.sid}/${text}/`}>{text}</a>}
-                &nbsp; <a href={`https://utdirect.utexas.edu/registration/registration.WBX?s_ccyys=${this.props.sid}&s_af_unique=${row.uid}`} style={{verticalAlign: "center"}}><LinkOutlined /></a>
+                    <a href={`https://utdirect.utexas.edu/apps/registrar/course_schedule/${this.props.sid}/${text}/`} target="_blank">{text}</a>}
+                &nbsp; <a href={`https://utdirect.utexas.edu/registration/registration.WBX?s_ccyys=${this.props.sid}&s_af_unique=${row.uid}`} target="_blank" style={{verticalAlign: "center"}}><LinkOutlined /></a>
                 </>,
             sorter: (a, b) => a.uid.localeCompare(b.uid),
             sortDirections: ['descend', 'ascend'],
