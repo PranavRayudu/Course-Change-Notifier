@@ -164,10 +164,7 @@ def get_time(time: str):
     if len(time) != 4 or not time.isdigit():
         raise Exception('Incorrect time format: {}'.format(time))
     # convert from CST to UTC time
-    return datetime.strptime(time, "%H%M")\
-                   .replace(tzinfo=timezone.utc)\
-                   .astimezone(tz=None)\
-                   .time() if time else None
+    return datetime.strptime(time, "%H%M").time() if time else None
 
 
 def valid_uid(uid: str):
