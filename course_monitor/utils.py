@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta, time, timezone
 
 from selenium import webdriver
 from apscheduler.executors.pool import ThreadPoolExecutor
@@ -61,7 +61,6 @@ def add_course_job(scheduler: BackgroundScheduler, course: Course, times: tuple,
         return '{}-c'.format(uid), '{}-s'.format(uid), '{}-e'.format(uid)
 
     def is_time_between(begin_time=None, end_time=None):
-
         if begin_time and end_time:
             check_time = datetime.now().time()
             if begin_time < end_time:
@@ -164,7 +163,11 @@ def init_monitor(sem, usr_name, passwd, headless=False):
 def get_time(time: str):
     if len(time) != 4 or not time.isdigit():
         raise Exception('Incorrect time format: {}'.format(time))
-    return datetime.strptime(time, "%H%M").time() if time else None
+    # convert from CST to UTC time
+    return datetime.strptime(time, "%H%M")\
+                   .replace(tzinfo=timezone.utc)\
+                   .astimezone(tz=None)\
+                   .time() if time else None
 
 
 def valid_uid(uid: str):
