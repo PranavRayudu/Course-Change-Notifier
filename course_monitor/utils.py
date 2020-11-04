@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta, time, timezone
+from datetime import datetime, timedelta, time
 
 from selenium import webdriver
 from apscheduler.executors.pool import ThreadPoolExecutor
@@ -36,17 +36,32 @@ def init_browser(headless=False):
     return webdriver.Chrome(options=options)
 
 
-def add_course(uid: str, emitters: [], courses: {}):
+def load_courses(emitters: [], scheduler, db, times: (None, None, 180), jitter=0):
+    courses = db.session.query(Course).all()
+    course_dict = {}
+    for course in courses:
+        course = Course(course.uid, emitters)
+        course_dict[course.uid] = course
+
+    add_courses_to_jobs(scheduler, course_dict, times, jitter)
+    return course_dict
+
+
+def add_course(uid: str, emitters: [], courses, db, commit=True):
     if uid not in courses:
-        course = Course(uid, emitters)
+        course = Course(uid=uid, emitters=emitters)
+        db.session.add(course)
+        if commit:
+            db.session.commit()
         courses[uid] = course
         return course
 
 
-def add_courses(uids: [str], emitters: []) -> {}:
+def add_courses(uids: [str], emitters: [], db) -> {}:
     courses = {}
     for uid in uids:
-        add_course(uid, emitters, courses)
+        add_course(uid, emitters, courses, db)
+    db.session.commit()
     return courses
 
 
@@ -112,15 +127,17 @@ def add_course_job(scheduler: BackgroundScheduler, course: Course, times: tuple,
     return course.job
 
 
-def remove_courses(courses: {}):
+def remove_courses(courses: {}, db):
     for uid in list(courses.keys()):
-        remove_course(uid, courses)
+        remove_course(uid, courses, db)
 
 
-def remove_course(uid: str, courses: {}) -> Course:
+def remove_course(uid: str, courses: {}, db) -> Course:
     if uid in courses:
         course = courses.pop(uid)
         remove_course_job(course)
+        db.session.query(Course).filter_by(uid=course.uid).delete()
+        db.session.commit()
         return course
 
 

@@ -1,10 +1,7 @@
-import json
 import re
-
 from bs4 import BeautifulSoup
-from json.encoder import JSONEncoder
 
-# from course_monitor import Monitor
+from course_monitor.db import db
 
 debug = False
 statuses = [
@@ -23,30 +20,18 @@ def d_print(msg):
     if debug:
         print(msg)
 
-
-class CourseEncoder(JSONEncoder):
-
-    def default(self, obj):
-        if isinstance(obj, Course):
-            return {
-                "uid": obj.uid,
-                "abbr": obj.code,
-                "title": obj.title,
-                "prof": obj.prof,
-                "status": obj.status if obj.valid else 'invalid',
-                "register": obj.register,
-                "paused": obj.paused
-            }
-        return json.JSONEncoder.default(self, obj)
-
-
-class Course:
+class Course(db.Model):
     Monitor = None
+
+    uid = db.Column(db.String(5), primary_key=True)
+    title = db.Column(db.String(255))
+    abbr = db.Column(db.String(10))
+    prof = db.Column(db.String(255))
 
     def __init__(self, uid: str, emitters: []):
         self.uid = uid
         self.emitters = emitters
-        self.code, self.title = None, None
+        self.abbr, self.title = None, None
         self.prof = None
         self.prev_status, self.status = None, None
         self.register = None
@@ -62,9 +47,12 @@ class Course:
     def __hash__(self):
         return int(self.uid)
 
+    def __repr__(self):
+        return '<{}: {}>'.format(self.uid, self.abbr)
+
     def __str__(self):
-        if self.code and self.title:
-            return "{}: {} ({})".format(self.code, self.title, self.uid)
+        if self.abbr and self.title:
+            return "{}: {} ({})".format(self.abbr, self.title, self.uid)
         return self.uid
 
     def __update_course(self, browser_src: str) -> str:
@@ -85,7 +73,7 @@ class Course:
         if table:
             row = table.find('tbody').find('tr')
             header = soup.find("section", {"id": "details"}).find("h2")
-            self.code, self.title = __parse_header(header.text)
+            self.abbr, self.title = __parse_header(header.text)
             # unique = row.find('td', {'data-th': 'Unique'}).text
             self.prof = row.find('td', {'data-th': 'Instructor'}).text
             self.status = row.find('td', {'data-th': 'Status'}).text
@@ -99,7 +87,7 @@ class Course:
         changed_course = {}
 
         if self.prev_status != self.status:
-            changed_course[self.uid] = (self.code, self.prof, self.prev_status, self.status)
+            changed_course[self.uid] = (self.abbr, self.prof, self.prev_status, self.status)
 
         if len(changed_course) > 0:
             d_print('{} that changed status'.format(changed_course))
@@ -134,10 +122,10 @@ class Course:
                 self.register = Course.Monitor.register(self.uid)
                 if self.register == 'fail':
                     self.__dispatch_emitters_simple(
-                        'Failed attempted registration for {}: {}'.format(self.uid, self.code))
+                        'Failed attempted registration for {}: {}'.format(self.uid, self.abbr))
                 elif self.register == 'success':
                     self.__dispatch_emitters_simple(
-                        'Successfully registered for {}: {}!'.format(self.uid, self.code))
+                        'Successfully registered for {}: {}!'.format(self.uid, self.abbr))
 
     def pause_job(self):
         if self.job:
@@ -159,3 +147,14 @@ class Course:
         self.job = None
         self.start_job = None
         self.end_job = None
+        
+    def serialize(self) -> {}:
+        return {
+            "uid": self.uid,
+            "abbr": self.abbr,
+            "title": self.title,
+            "prof": self.prof,
+            "status": self.status if self.valid else 'invalid',
+            "register": self.register,
+            "paused": self.paused
+        }

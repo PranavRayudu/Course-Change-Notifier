@@ -7,7 +7,6 @@ from course_monitor import monitor
 from course_monitor import emitter
 
 Course = course.Course
-CourseEncoder = course.CourseEncoder
 Monitor = monitor.Monitor
 ConsoleEmitter = emitter.ConsoleEmitter
 SlackEmitter = emitter.SlackEmitter

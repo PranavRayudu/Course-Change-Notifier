@@ -1,19 +1,32 @@
+import json
 import os
 
 from dotenv import load_dotenv
-from flask import Flask, send_from_directory, Response, request, redirect
+from flask import Flask, send_from_directory, Response, request, redirect, jsonify
 from flask_login import LoginManager, login_required, login_user, current_user
 
-from course_monitor import Monitor, CourseEncoder, JobState, set_debug
+from course_monitor import Monitor, JobState, set_debug, Course
+from course_monitor.db import db
 from course_monitor.utils import \
-    add_course_job, remove_course, init_monitor, get_time, add_course, build_sem_code, valid_uid
+    add_course_job, remove_course, init_monitor, get_time, add_course, build_sem_code, valid_uid, load_courses
 from models import User
 
 API = '/api/v1'
 
 load_dotenv()
+
 app = Flask(__name__, static_folder='client/build', static_url_path='')
+DATABASE_URL = os.getenv('DATABASE_URL')
+# print(DATABASE_URL)
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
 app.secret_key = os.getenv('SECRET_KEY')
+db.init_app(app)
+
+with app.app_context():
+    db.create_all()
+
 login_manager = LoginManager(app)
 login_manager.login_view = '/login'
 
@@ -44,7 +57,7 @@ def invalid_resp(uid: str):
 
 
 def undetected_resp(uid: str):
-    if not valid_uid(uid) or uid not in courses:
+    if not valid_uid(uid) or not db.session.query(Course).filter(Course.uid == uid).first():
         return 'course id {} not valid or not found'.format(uid), 404
 
 
@@ -83,16 +96,16 @@ def config():
             reset()
 
         scheduler.remove_all_jobs()
-        for course in courses.values():
+        for course in db.session.query(Course).all():
             add_course_job(scheduler, course, (start_time, end_time, wait_time), jitter)
 
     # if os.getenv('FLASK_ENV') == 'development':
     scheduler.print_jobs()
 
-    return {'sid'       : str(Monitor.sid),
-            'interval'  : str(wait_time),
-            'start'     : start_time.strftime('%H%M') if start_time else None,
-            'end'       : end_time.strftime('%H%M') if end_time else None}
+    return {'sid': str(Monitor.sid),
+            'interval': str(wait_time),
+            'start': start_time.strftime('%H%M') if start_time else None,
+            'end': end_time.strftime('%H%M') if end_time else None}
 
 
 @app.route(API + '/courses', methods=['GET'])
@@ -100,7 +113,7 @@ def config():
 def get_courses():
     return Response(
         mimetype='application/json',
-        response=CourseEncoder().encode(list(courses.values())))
+        response=json.dumps([courses[c].serialize() for c in courses]))
 
 
 @app.route(API + '/courses/<uid>', methods=['GET'])
@@ -111,7 +124,7 @@ def get_course(uid: str):
 
     return Response(
         mimetype='application/json',
-        response=CourseEncoder().encode(courses))
+        response=jsonify(courses))
 
 
 @app.route(API + '/courses/<uid>', methods=['POST'])
@@ -120,7 +133,7 @@ def create_course(uid: str):
     if resp := invalid_resp(uid):
         return resp
 
-    course = add_course(uid, emitters, courses)
+    course = add_course(uid, emitters, courses, db)
     if course:
         add_course_job(scheduler, course, (start_time, end_time, wait_time), jitter)
     else:
@@ -137,7 +150,7 @@ def create_course(uid: str):
         elif register == 'false':
             course.register = None
 
-    return CourseEncoder().encode(course), 201
+    return course.serialize(), 201
 
 
 @app.route(API + '/courses/<uid>', methods=['DELETE'])
@@ -145,8 +158,8 @@ def create_course(uid: str):
 def remove_course_id(uid: str):
     if resp := undetected_resp(uid):
         return resp
-    course = remove_course(uid, courses)
-    return CourseEncoder().encode(course)
+    course = remove_course(uid, courses, db)
+    return course.serialize()
 
 
 @app.route(API + '/login_status', methods=['GET'])
@@ -156,7 +169,7 @@ def login_status():
 
     browser_logged_in = Monitor.logged_in() and not Monitor.login_fail
     return {'browser': browser_logged_in,
-            'user'   : current_user.is_authenticated}
+            'user': current_user.is_authenticated}
 
 
 @app.route(API + '/browser_login', methods=['POST'])
@@ -166,6 +179,7 @@ def browser_login_action():
     login_state = JobState(str(Monitor.sid))
     login_state.listen_done(scheduler)
     login_state.wait_done()
+    courses.update(load_courses(emitters, scheduler, db, (start_time, end_time, wait_time), jitter=jitter))
     return {'browser': Monitor.logged_in()}
 
 
@@ -196,7 +210,7 @@ def login():
     login_user(user, remember=request.form.get('remember') == 'true')
     browser_logged_in = Monitor.logged_in() and not Monitor.login_fail
     return {'browser': browser_logged_in,
-            'user'   : True}
+            'user': True}
 
 
 @app.route('/', defaults={'path': ''})
