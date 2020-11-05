@@ -9,13 +9,13 @@ from server.course_monitor import Monitor, JobState, set_debug, Course
 from server.course_monitor.database import db
 from server.course_monitor.utils import \
     add_course_job, remove_course, init_monitor, get_time, add_course, build_sem_code, valid_uid, load_courses
-from server.course_monitor.User import User
+from server.course_monitor.user import User
 
 API = '/api/v1'
 
 load_dotenv()
 
-app = Flask(__name__, static_folder='client/build', static_url_path='')
+app = Flask(__name__, static_folder='../client/build', static_url_path='')
 DATABASE_URL = os.getenv('DATABASE_URL')
 # print(DATABASE_URL)
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
