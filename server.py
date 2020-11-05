@@ -37,6 +37,7 @@ usr_name, passwd = os.getenv('EID'), os.getenv('UT_PASS')
 scheduler, emitters = init_monitor(os.getenv('SEM'),
                                    os.getenv('EID'),
                                    os.getenv('UT_PASS'),
+                                   DATABASE_URL,
                                    os.getenv('FLASK_ENV') != 'development')
 
 start_time, end_time = get_time(os.getenv('START')), get_time(os.getenv('END'))
@@ -158,7 +159,7 @@ def create_course(uid: str):
 def remove_course_id(uid: str):
     if resp := undetected_resp(uid):
         return resp
-    course = remove_course(uid, courses, db)
+    course = remove_course(uid, courses, scheduler, db)
     return course.serialize()
 
 
@@ -179,7 +180,7 @@ def browser_login_action():
     login_state = JobState(str(Monitor.sid))
     login_state.listen_done(scheduler)
     login_state.wait_done()
-    courses.update(load_courses(emitters, scheduler, db, (start_time, end_time, wait_time), jitter=jitter))
+    courses.update(load_courses(emitters, db))
     return {'browser': Monitor.logged_in()}
 
 

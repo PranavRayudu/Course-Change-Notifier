@@ -37,9 +37,6 @@ class Course(db.Model):
         self.register = None
         self.paused = False
         self.valid = True
-        self.job = None
-        self.start_job = None
-        self.end_job = None
 
     def __eq__(self, obj):
         return isinstance(obj, Course) and obj.uid == self.uid
@@ -127,26 +124,31 @@ class Course(db.Model):
                     self.__dispatch_emitters_simple(
                         'Successfully registered for {}: {}!'.format(self.uid, self.abbr))
 
-    def pause_job(self):
-        if self.job:
-            self.job.pause()
+    def get_course_job_ids(self):
+        # job ids: <uid>-c (course check), <uid>-s (start course check), <uid>-e (end course check)
+        return '{}-c'.format(self.uid), '{}-s'.format(self.uid), '{}-e'.format(self.uid)
+
+    def pause_job(self, scheduler):
+        job_id, _, _ = self.get_course_job_ids()
+        if job := scheduler.get_job(job_id, 'default'):
+            job.pause()
         self.paused = True
 
-    def resume_job(self):
-        if self.job:
-            self.job.resume()
+    def resume_job(self, scheduler):
+        job_id, _, _ = self.get_course_job_ids()
+        if job := scheduler.get_job(job_id, 'default'):
+            job.resume()
         self.paused = False
 
-    def remove_job(self):
-        if self.job:
-            self.job.remove()
-        if self.start_job:
-            self.start_job.remove()
-        if self.end_job:
-            self.end_job.remove()
-        self.job = None
-        self.start_job = None
-        self.end_job = None
+    def remove_jobs(self, scheduler):
+
+        job_id, job_sid, job_eid = self.get_course_job_ids()
+        if job := scheduler.get_job(job_id, 'default'):
+            job.remove()
+        if job := scheduler.get_job(job_sid, 'default'):
+            job.remove()
+        if job := scheduler.get_job(job_eid, 'default'):
+            job.remove()
         
     def serialize(self) -> {}:
         return {

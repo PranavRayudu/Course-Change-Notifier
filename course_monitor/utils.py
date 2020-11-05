@@ -1,6 +1,8 @@
 import os
+import pytz
 from datetime import datetime, timedelta, time
 
+from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from selenium import webdriver
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -36,14 +38,14 @@ def init_browser(headless=False):
     return webdriver.Chrome(options=options)
 
 
-def load_courses(emitters: [], scheduler, db, times: (None, None, 180), jitter=0):
+def load_courses(emitters: [], db):
     courses = db.session.query(Course).all()
     course_dict = {}
     for course in courses:
         course = Course(course.uid, emitters)
         course_dict[course.uid] = course
 
-    add_courses_to_jobs(scheduler, course_dict, times, jitter)
+    # add_courses_to_jobs(scheduler, course_dict, times, jitter)
     return course_dict
 
 
@@ -71,9 +73,6 @@ def add_courses_to_jobs(scheduler: BackgroundScheduler, courses: {}, times: (Non
 
 
 def add_course_job(scheduler: BackgroundScheduler, course: Course, times: tuple, jitter=0):
-    def get_course_job_ids(uid: str):
-        # job ids: <uid>-c (course check), <uid>-s (start course check), <uid>-e (end course check)
-        return '{}-c'.format(uid), '{}-s'.format(uid), '{}-e'.format(uid)
 
     def is_time_between(begin_time=None, end_time=None):
         if begin_time and end_time:
@@ -91,12 +90,12 @@ def add_course_job(scheduler: BackgroundScheduler, course: Course, times: tuple,
             repl = repl + timedelta(days=1)
         return repl
 
-    course_check_id, course_start_id, course_end_id = get_course_job_ids(course.uid)
+    course_check_id, course_start_id, course_end_id = course.get_course_job_ids()
     start_time, end_time, wait_time = times
 
     if added := is_time_between(start_time, end_time):
         # noinspection PyTypeChecker
-        course.job = scheduler.add_job(
+        scheduler.add_job(
             course.check,
             'interval',
             seconds=wait_time,
@@ -106,48 +105,47 @@ def add_course_job(scheduler: BackgroundScheduler, course: Course, times: tuple,
             jitter=jitter,
             coalesce=True)
         if course.paused:
-            course.job.pause()
+            course.pause_job(scheduler)
 
     if start_time and end_time:
         # start_date, end_date = get_today_times(start_time, end_time)
         start_date, end_date = next_datetime(start_time), next_datetime(end_time)
-        course.start_job = scheduler.add_job(
+        scheduler.add_job(
             add_course_job,
             trigger='date',
             args=(scheduler, course, times, jitter),
             id=course_start_id,
             run_date=start_date)
         if added:
-            course.end_job = scheduler.add_job(
+            scheduler.add_job(
                 remove_course_job,
-                args=(course,),
+                args=(scheduler, course),
                 trigger='date',
                 id=course_end_id,
                 run_date=end_date)
-    return course.job
 
 
-def remove_courses(courses: {}, db):
+def remove_courses(scheduler, courses: {}, db):
     for uid in list(courses.keys()):
-        remove_course(uid, courses, db)
+        remove_course(uid, courses, scheduler, db)
 
 
-def remove_course(uid: str, courses: {}, db) -> Course:
+def remove_course(uid: str, courses: {}, scheduler, db) -> Course:
     if uid in courses:
         course = courses.pop(uid)
-        remove_course_job(course)
+        remove_course_job(scheduler, course)
         db.session.query(Course).filter_by(uid=course.uid).delete()
         db.session.commit()
         return course
 
 
-def remove_courses_from_jobs(courses: {}):
+def remove_courses_from_jobs(scheduler, courses: {}):
     for course in courses.values():
-        remove_course_job(course)
+        remove_course_job(scheduler, course)
 
 
-def remove_course_job(course: Course):
-    course.remove_job()
+def remove_course_job(scheduler: BackgroundScheduler, course: Course):
+    course.remove_jobs(scheduler)
 
 
 def build_emitters(sem_id: str) -> []:
@@ -159,7 +157,7 @@ def build_emitters(sem_id: str) -> []:
     return emitters
 
 
-def init_monitor(sem, usr_name, passwd, headless=False):
+def init_monitor(sem, usr_name, passwd, db_url, headless=False):
     browser = init_browser(headless)
 
     sid = build_sem_code(sem)
@@ -170,7 +168,10 @@ def init_monitor(sem, usr_name, passwd, headless=False):
     Monitor.usr_name = usr_name
     Monitor.passwd = passwd
 
-    scheduler = BackgroundScheduler(daemon=True, executors={'default': ThreadPoolExecutor(1)})
+    scheduler = BackgroundScheduler(daemon=True)
+    scheduler.configure(executors={'default': ThreadPoolExecutor(1)},
+                        jobstores={'default': SQLAlchemyJobStore(db_url)},  # jobs persist on restarts
+                        timezone=pytz.timezone('US/Central'))
     # scheduler.add_job(CourseMonitor.login, id=str(sid))
     # CourseMonitor.login()  # login pre-emptively before getting all course information
 

@@ -1,3 +1,5 @@
+import os
+import pickle as pk
 from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
 from selenium.webdriver.support.wait import WebDriverWait
 
@@ -11,6 +13,7 @@ def d_print(msg):
 
 
 class Monitor:
+    cookie_path = "cookies.pkl"
     browser, sid, usr_name, passwd = None, None, None, None
     login_fail = False
 
@@ -99,9 +102,25 @@ class Monitor:
     @staticmethod
     def login():
         Monitor.login_fail = False  # method acts as a reset for manual login
+
+        Monitor.load_cookies()
         Monitor.__goto_page("https://utdirect.utexas.edu/apps/registrar/course_schedule/{}/"
                             .format(Monitor.sid))
+        Monitor.save_cookies()
         return Monitor.logged_in()
+
+    @staticmethod
+    def save_cookies():
+        pk.dump(Monitor.browser.get_cookies(), open(Monitor.cookie_path, "wb"))  # save cookies
+
+    @staticmethod
+    def load_cookies():
+        Monitor.browser.get("https://www.utexas.edu/")
+        if os.path.isfile(Monitor.cookie_path):
+            cookies = pk.load(open(Monitor.cookie_path, "rb"))  # load cookies
+            print(cookies)
+            for cookie in cookies:
+                Monitor.browser.add_cookie(cookie)
 
     @staticmethod
     def register(uid: str, add_waitlist=True):
