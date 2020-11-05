@@ -105,8 +105,9 @@ def config():
             reset()
 
         scheduler.remove_all_jobs()
-        for course in db.session.query(Course).all():
-            add_course_job(course, (start_time, end_time, wait_time), jitter)
+        # for course in db.session.query(Course).all(): # need to recast all courses...
+        for uid in courses:
+            add_course_job(courses[uid], (start_time, end_time, wait_time), jitter)
 
     # if os.getenv('FLASK_ENV') == 'development':
     # scheduler.print_jobs()
