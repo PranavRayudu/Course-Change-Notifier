@@ -1,7 +1,7 @@
 import React from 'react';
 import {connect} from "react-redux";
 import {message, Modal} from "antd";
-import {postBrowserLogin} from "../store/actions";
+import {fetchCourseData, postBrowserLogin} from "../store/actions";
 
 function BrowserLogin({dispatch, success, loading}) {
     const sendLogin = () => {
@@ -11,10 +11,18 @@ function BrowserLogin({dispatch, success, loading}) {
         ))
     }
 
+    const getCourseData = () => {
+        dispatch(fetchCourseData(
+            () => message.success('Successfully fetched course data'),
+            () => message.error('Unable to load course data')
+        ))
+    }
+
     return <Modal
         title="Not logged into UT systems"
         okText="Attempt login"
         onOk={sendLogin}
+        afterClose={getCourseData}
         cancelButtonProps={{style: {display: "None"}}}
         visible={!success}
         closable={false}

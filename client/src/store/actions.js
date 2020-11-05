@@ -49,7 +49,6 @@ export function postBrowserLogin(success, fail) {
             if (data.browser && success) success()
             if (!data.browser && fail) fail()
             dispatch(receiveLoginData(data))
-            fetchCourseData()
         }).catch((err) => {
             if (fail) fail()
             dispatch(receiveLoginData())
