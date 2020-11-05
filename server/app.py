@@ -106,7 +106,7 @@ def config():
 
         scheduler.remove_all_jobs()
         for course in db.session.query(Course).all():
-            add_course_job(scheduler, course, (start_time, end_time, wait_time), jitter)
+            add_course_job(course, (start_time, end_time, wait_time), jitter)
 
     # if os.getenv('FLASK_ENV') == 'development':
     # scheduler.print_jobs()
