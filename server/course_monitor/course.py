@@ -1,7 +1,7 @@
 import re
 from bs4 import BeautifulSoup
 
-from course_monitor.db import db
+from server.course_monitor.database import db
 
 debug = False
 statuses = [
@@ -149,7 +149,7 @@ class Course(db.Model):
             job.remove()
         if job := scheduler.get_job(job_eid, 'default'):
             job.remove()
-        
+
     def serialize(self) -> {}:
         return {
             "uid": self.uid,

@@ -5,11 +5,11 @@ from dotenv import load_dotenv
 from flask import Flask, send_from_directory, Response, request, redirect, jsonify
 from flask_login import LoginManager, login_required, login_user, current_user
 
-from course_monitor import Monitor, JobState, set_debug, Course
-from course_monitor.db import db
-from course_monitor.utils import \
+from server.course_monitor import Monitor, JobState, set_debug, Course
+from server.course_monitor.database import db
+from server.course_monitor.utils import \
     add_course_job, remove_course, init_monitor, get_time, add_course, build_sem_code, valid_uid, load_courses
-from models import User
+from server.course_monitor.User import User
 
 API = '/api/v1'
 
@@ -30,8 +30,7 @@ with app.app_context():
 login_manager = LoginManager(app)
 login_manager.login_view = '/login'
 
-users = {}
-courses = {}
+courses = {}  # someday, I will remove this also
 
 usr_name, passwd = os.getenv('EID'), os.getenv('UT_PASS')
 scheduler, emitters = init_monitor(os.getenv('SEM'),
@@ -41,7 +40,16 @@ scheduler, emitters = init_monitor(os.getenv('SEM'),
                                    os.getenv('FLASK_ENV') != 'development')
 
 start_time, end_time = get_time(os.getenv('START')), get_time(os.getenv('END'))
-users[usr_name] = User(usr_name, passwd)
+# users[usr_name] = User(usr_name, passwd)
+with app.app_context():
+    user = db.session.query(User).filter_by(uid=usr_name).first()
+    if not user: # add default user (me!)
+        user = User(usr_name, passwd)
+        db.session.add(user)
+        db.session.commit()
+        print("added to db!")
+
+
 wait_time, jitter = 180, 10
 set_debug(os.getenv('FLASK_ENV') == 'development')
 
@@ -101,7 +109,7 @@ def config():
             add_course_job(scheduler, course, (start_time, end_time, wait_time), jitter)
 
     # if os.getenv('FLASK_ENV') == 'development':
-    scheduler.print_jobs()
+    # scheduler.print_jobs()
 
     return {'sid': str(Monitor.sid),
             'interval': str(wait_time),
@@ -176,17 +184,25 @@ def login_status():
 @app.route(API + '/browser_login', methods=['POST'])
 @login_required
 def browser_login_action():
+    user = load_user(current_user.uid)
+    Monitor.cookies = user.cookies
+
     scheduler.add_job(Monitor.login, id=str(Monitor.sid))
     login_state = JobState(str(Monitor.sid))
     login_state.listen_done(scheduler)
     login_state.wait_done()
+
+    if Monitor.cookies:
+        user.cookies = Monitor.cookies
+        db.session.commit()
+
     courses.update(load_courses(emitters, db))
     return {'browser': Monitor.logged_in()}
 
 
 @login_manager.user_loader
 def load_user(user_id):
-    return users[user_id]
+    return db.session.query(User).filter_by(uid=user_id).first()
 
 
 @app.route('/login', methods=['GET'])
@@ -204,7 +220,8 @@ def login():
     user_id = request.form.get('id')
     passwd = request.form.get('password')
 
-    user = users[user_id]
+    user = load_user(user_id)
+
     if not user or not user.check_password(passwd):
         return {'user': False}, 401
 

@@ -13,8 +13,7 @@ def d_print(msg):
 
 
 class Monitor:
-    cookie_path = "cookies.pkl"
-    browser, sid, usr_name, passwd = None, None, None, None
+    browser, sid, usr_name, passwd, cookies = None, None, None, None, None
     login_fail = False
 
     @staticmethod
@@ -40,63 +39,65 @@ class Monitor:
             return False
 
         browser = Monitor.browser
-        if 'Sign in with your UT EID' in browser.title:
+        try:
+            if 'Sign in with your UT EID' in browser.title:
 
-            heading = browser.find_element_by_xpath("//div[@id='message']/h1").text
+                heading = browser.find_element_by_xpath("//div[@id='message']/h1").text
 
-            if 'Sign in with your UT EID' in heading:
+                if 'Sign in with your UT EID' in heading:
 
-                if Monitor.usr_name and Monitor.passwd:
-                    username_field = browser.find_element_by_id('username')
-                    username_field.clear()
-                    username_field.send_keys(Monitor.usr_name)
+                    if Monitor.usr_name and Monitor.passwd:
+                        username_field = browser.find_element_by_id('username')
+                        username_field.clear()
+                        username_field.send_keys(Monitor.usr_name)
 
-                    password_field = browser.find_element_by_id('password')
-                    password_field.clear()
-                    password_field.send_keys(Monitor.passwd)
+                        password_field = browser.find_element_by_id('password')
+                        password_field.clear()
+                        password_field.send_keys(Monitor.passwd)
 
-                    login_btn = browser.find_element_by_xpath("//input[@type='submit']")
-                    login_btn.click()
+                        login_btn = browser.find_element_by_xpath("//input[@type='submit']")
+                        login_btn.click()
 
-            elif 'Multi-Factor Authentication Required' in heading:
+                elif 'Multi-Factor Authentication Required' in heading:
 
-                iframe = browser.find_element_by_id('duo_iframe')
+                    iframe = browser.find_element_by_id('duo_iframe')
 
-                try:
-                    browser.switch_to.frame(iframe)
-                    messages = browser.find_elements_by_xpath(
-                        "//div[@id='messages-view']"
-                        "/div[@class='messages-list']"
-                        "/div")
+                    try:
+                        browser.switch_to.frame(iframe)
+                        messages = browser.find_elements_by_xpath(
+                            "//div[@id='messages-view']"
+                            "/div[@class='messages-list']"
+                            "/div")
 
-                    push_active = False
-                    for message in messages:
-                        if message.get_attribute('aria-hidden') == 'true':
-                            continue
-                        if 'info' in message.get_attribute('class'):
-                            push_active = 'Pushed a login request to your device...' in message.text
-                            break
-                        if 'error' in message.get_attribute('class'):
-                            Monitor.login_fail = True
-                            break
+                        push_active = False
+                        for message in messages:
+                            if message.get_attribute('aria-hidden') == 'true':
+                                continue
+                            if 'info' in message.get_attribute('class'):
+                                push_active = 'Pushed a login request to your device...' in message.text
+                                break
+                            if 'error' in message.get_attribute('class'):
+                                Monitor.login_fail = True
+                                break
 
-                    if not push_active and not Monitor.login_fail:
+                        if not push_active and not Monitor.login_fail:
 
-                        remember_me = browser.find_element_by_xpath(
-                            "//div[@class='stay-logged-in']"
-                            "/label[@class='remember_me_label_field']"
-                            "/input[@type='checkbox']")
+                            remember_me = browser.find_element_by_xpath(
+                                "//div[@class='stay-logged-in']"
+                                "/label[@class='remember_me_label_field']"
+                                "/input[@type='checkbox']")
 
-                        if not remember_me.is_selected():
-                            remember_me.click()
+                            if not remember_me.is_selected():
+                                remember_me.click()
 
-                        # send push button
-                        browser.find_element_by_xpath(
-                            "(//button[contains(@class, 'auth-button')])[1]").click()
-                except StaleElementReferenceException:
-                    pass  # in case the frame changed, to prevent error
-                browser.switch_to.default_content()
-
+                            # send push button
+                            browser.find_element_by_xpath(
+                                "(//button[contains(@class, 'auth-button')])[1]").click()
+                    except StaleElementReferenceException:
+                        pass  # in case the frame changed, to prevent error
+                    browser.switch_to.default_content()
+        except Exception:
+            pass
         return Monitor.logged_in()
 
     @staticmethod
@@ -111,15 +112,16 @@ class Monitor:
 
     @staticmethod
     def save_cookies():
-        pk.dump(Monitor.browser.get_cookies(), open(Monitor.cookie_path, "wb"))  # save cookies
+        Monitor.cookies = Monitor.browser.get_cookies()
+        # print(current_user.cookies)
+        # pk.dump(Monitor.browser.get_cookies(), open(Monitor.cookie_path, "wb"))  # save cookies
 
     @staticmethod
     def load_cookies():
         Monitor.browser.get("https://www.utexas.edu/")
-        if os.path.isfile(Monitor.cookie_path):
-            cookies = pk.load(open(Monitor.cookie_path, "rb"))  # load cookies
-            print(cookies)
-            for cookie in cookies:
+        print(Monitor.cookies)
+        if Monitor.cookies:
+            for cookie in Monitor.cookies:
                 Monitor.browser.add_cookie(cookie)
 
     @staticmethod

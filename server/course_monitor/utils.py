@@ -7,7 +7,7 @@ from selenium import webdriver
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from course_monitor import Course, Monitor, ConsoleEmitter, SlackEmitter
+from server.course_monitor import Course, Monitor, ConsoleEmitter, SlackEmitter
 
 
 def build_sem_code(sem: str):

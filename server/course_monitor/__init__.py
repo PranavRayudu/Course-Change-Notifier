@@ -2,9 +2,7 @@ import time
 
 from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR
 
-from course_monitor import course
-from course_monitor import monitor
-from course_monitor import emitter
+from server.course_monitor import monitor, emitter, course
 
 Course = course.Course
 Monitor = monitor.Monitor
