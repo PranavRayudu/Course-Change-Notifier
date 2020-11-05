@@ -96,23 +96,23 @@ def add_course_job(uid: str, times: tuple, jitter=0):
     course_check_id, course_start_id, course_end_id = Course.get_course_job_ids(uid)
     start_time, end_time, wait_time = times
 
-    if added := is_time_between(start_time, end_time):
+    # if added := is_time_between(start_time, end_time):
         # noinspection PyTypeChecker
-        if not scheduler.get_job(course_check_id):
-            scheduler.add_job(
-                Course.check,
-                'interval',
-                args=(uid,),
-                seconds=wait_time,
-                next_run_time=datetime.now(),
-                misfire_grace_time=None,
-                id=course_check_id,
-                jitter=jitter,
-                coalesce=True)
+    if not scheduler.get_job(course_check_id):
+        scheduler.add_job(
+            Course.check,
+            'interval',
+            args=(uid,),
+            seconds=wait_time,
+            next_run_time=datetime.now(),
+            misfire_grace_time=None,
+            id=course_check_id,
+            jitter=jitter,
+            coalesce=True)
 
-        course = Course.get_course(uid)
-        if course.paused:
-            Course.pause_job(uid, scheduler)
+    course = Course.get_course(uid)
+    if course.paused:
+        Course.pause_job(uid, scheduler)
 
     # if start_time and end_time:
     #     # start_date, end_date = get_today_times(start_time, end_time)

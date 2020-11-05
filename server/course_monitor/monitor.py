@@ -1,3 +1,5 @@
+import time
+
 from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
 from selenium.webdriver.support.wait import WebDriverWait
 
@@ -37,6 +39,8 @@ class Monitor:
             return False
 
         browser = Monitor.browser
+        time.sleep(2)
+
         try:
             if 'Sign in with your UT EID' in browser.title:
 
