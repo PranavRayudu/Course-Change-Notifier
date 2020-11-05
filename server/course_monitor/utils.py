@@ -9,6 +9,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 from server.course_monitor import Course, Monitor, ConsoleEmitter, SlackEmitter
 
+scheduler = None
 
 def build_sem_code(sem: str):
     semester_pts = sem.lower().split()
@@ -67,12 +68,12 @@ def add_courses(uids: [str], emitters: [], db) -> {}:
     return courses
 
 
-def add_courses_to_jobs(scheduler: BackgroundScheduler, courses: {}, times: (None, None, 180), jitter=0) -> []:
+def add_courses_to_jobs(courses: {}, times: (None, None, 180), jitter=0) -> []:
     for course in courses.values():
-        add_course_job(scheduler, course, times, jitter)
+        add_course_job(course, times, jitter)
 
 
-def add_course_job(scheduler: BackgroundScheduler, course: Course, times: tuple, jitter=0):
+def add_course_job(course: Course, times: tuple, jitter=0):
 
     def is_time_between(begin_time=None, end_time=None):
         if begin_time and end_time:
@@ -113,38 +114,38 @@ def add_course_job(scheduler: BackgroundScheduler, course: Course, times: tuple,
         scheduler.add_job(
             add_course_job,
             trigger='date',
-            args=(scheduler, course, times, jitter),
+            args=(course, times, jitter),
             id=course_start_id,
             run_date=start_date)
         if added:
             scheduler.add_job(
                 remove_course_job,
-                args=(scheduler, course),
+                args=(course),
                 trigger='date',
                 id=course_end_id,
                 run_date=end_date)
 
 
-def remove_courses(scheduler, courses: {}, db):
+def remove_courses(courses: {}, db):
     for uid in list(courses.keys()):
-        remove_course(uid, courses, scheduler, db)
+        remove_course(uid, courses, db)
 
 
-def remove_course(uid: str, courses: {}, scheduler, db) -> Course:
+def remove_course(uid: str, courses: {}, db) -> Course:
     if uid in courses:
         course = courses.pop(uid)
-        remove_course_job(scheduler, course)
+        remove_course_job(course)
         db.session.query(Course).filter_by(uid=course.uid).delete()
         db.session.commit()
         return course
 
 
-def remove_courses_from_jobs(scheduler, courses: {}):
+def remove_courses_from_jobs(courses: {}):
     for course in courses.values():
-        remove_course_job(scheduler, course)
+        remove_course_job(course)
 
 
-def remove_course_job(scheduler: BackgroundScheduler, course: Course):
+def remove_course_job(course: Course):
     course.remove_jobs(scheduler)
 
 
@@ -168,6 +169,7 @@ def init_monitor(sem, usr_name, passwd, db_url, headless=False):
     Monitor.usr_name = usr_name
     Monitor.passwd = passwd
 
+    global scheduler
     scheduler = BackgroundScheduler(daemon=True)
     scheduler.configure(executors={'default': ThreadPoolExecutor(1)},
                         jobstores={'default': SQLAlchemyJobStore(db_url)},  # jobs persist on restarts

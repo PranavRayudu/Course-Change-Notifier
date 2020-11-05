@@ -43,7 +43,7 @@ start_time, end_time = get_time(os.getenv('START')), get_time(os.getenv('END'))
 # users[usr_name] = User(usr_name, passwd)
 with app.app_context():
     user = db.session.query(User).filter_by(uid=usr_name).first()
-    if not user: # add default user (me!)
+    if not user:  # add default user (me!)
         user = User(usr_name, passwd)
         db.session.add(user)
         db.session.commit()
@@ -144,7 +144,7 @@ def create_course(uid: str):
 
     course = add_course(uid, emitters, courses, db)
     if course:
-        add_course_job(scheduler, course, (start_time, end_time, wait_time), jitter)
+        add_course_job(course, (start_time, end_time, wait_time), jitter)
     else:
         course = courses[uid]
 
@@ -167,7 +167,7 @@ def create_course(uid: str):
 def remove_course_id(uid: str):
     if resp := undetected_resp(uid):
         return resp
-    course = remove_course(uid, courses, scheduler, db)
+    course = remove_course(uid, courses, db)
     return course.serialize()
 
 

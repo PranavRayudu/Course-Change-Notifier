@@ -143,12 +143,12 @@ class Course(db.Model):
     def remove_jobs(self, scheduler):
 
         job_id, job_sid, job_eid = self.get_course_job_ids()
-        if job := scheduler.get_job(job_id, 'default'):
-            job.remove()
-        if job := scheduler.get_job(job_sid, 'default'):
-            job.remove()
-        if job := scheduler.get_job(job_eid, 'default'):
-            job.remove()
+        if job_c := scheduler.get_job(job_id, 'default'):
+            job_c.remove()
+        if job_s := scheduler.get_job(job_sid, 'default'):
+            job_s.remove()
+        if job_e := scheduler.get_job(job_eid, 'default'):
+            job_e.remove()
 
     def serialize(self) -> {}:
         return {

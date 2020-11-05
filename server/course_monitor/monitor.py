@@ -119,7 +119,6 @@ class Monitor:
     @staticmethod
     def load_cookies():
         Monitor.browser.get("https://www.utexas.edu/")
-        print(Monitor.cookies)
         if Monitor.cookies:
             for cookie in Monitor.cookies:
                 Monitor.browser.add_cookie(cookie)
