@@ -46,4 +46,3 @@ class User(UserMixin, db.Model):
 
     def get_id(self):
         return self.uid
-

@@ -47,7 +47,6 @@ with app.app_context():
         user = User(usr_name, passwd)
         db.session.add(user)
         db.session.commit()
-        print("added to db!")
 
 
 wait_time, jitter = 180, 10
@@ -134,7 +133,7 @@ def get_course(uid: str):
 
     return Response(
         mimetype='application/json',
-        response=jsonify(courses))
+        response=courses[uid].serialize())
 
 
 @app.route(API + '/courses/<uid>', methods=['POST'])
@@ -151,9 +150,9 @@ def create_course(uid: str):
 
     if pause := request.values.get('pause'):
         if pause == 'true':
-            course.pause_job()
+            course.pause_job(scheduler)
         elif pause == 'false':
-            course.resume_job()
+            course.resume_job(scheduler)
     if register := request.values.get('register'):
         if register == 'true':
             course.register = 'register'

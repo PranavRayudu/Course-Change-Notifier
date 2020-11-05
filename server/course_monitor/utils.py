@@ -36,7 +36,8 @@ def init_browser(headless=False):
         options.binary_location = os.getenv('GOOGLE_CHROME_BIN')
     if os.getenv('CHROMEDRIVER_PATH'):
         return webdriver.Chrome(os.getenv('CHROMEDRIVER_PATH'), options=options)
-    return webdriver.Chrome(options=options)
+    else:
+        return webdriver.Chrome(options=options)
 
 
 def load_courses(emitters: [], db):
@@ -120,7 +121,7 @@ def add_course_job(course: Course, times: tuple, jitter=0):
         if added:
             scheduler.add_job(
                 remove_course_job,
-                args=(course),
+                args=(course,),
                 trigger='date',
                 id=course_end_id,
                 run_date=end_date)

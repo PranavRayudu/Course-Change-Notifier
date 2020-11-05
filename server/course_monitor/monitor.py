@@ -1,5 +1,3 @@
-import os
-import pickle as pk
 from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
 from selenium.webdriver.support.wait import WebDriverWait
 
@@ -96,8 +94,8 @@ class Monitor:
                     except StaleElementReferenceException:
                         pass  # in case the frame changed, to prevent error
                     browser.switch_to.default_content()
-        except Exception:
-            pass
+        except Exception as e:
+            print(e)
         return Monitor.logged_in()
 
     @staticmethod
@@ -118,8 +116,8 @@ class Monitor:
 
     @staticmethod
     def load_cookies():
-        Monitor.browser.get("https://www.utexas.edu/")
         if Monitor.cookies:
+            Monitor.browser.get("https://www.utexas.edu/")
             for cookie in Monitor.cookies:
                 Monitor.browser.add_cookie(cookie)
 
