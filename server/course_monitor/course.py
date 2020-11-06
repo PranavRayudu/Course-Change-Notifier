@@ -29,7 +29,7 @@ class Course(db.Model):
     title = db.Column(db.String(255))
     abbr = db.Column(db.String(10))
     prof = db.Column(db.String(255))
-    prev_status, status = db.Column(db.String(100)), db.Column(db.String(100))
+    status = db.Column(db.String(100))
     register = db.Column(db.String(100))
     paused = db.Column(db.Boolean)
     valid = db.Column(db.Boolean)
@@ -53,7 +53,7 @@ class Course(db.Model):
         return self.uid
 
     @staticmethod
-    def __update_course(self, browser_src: str) -> str:
+    def __update_course(course, browser_src: str) -> str:
 
         def __parse_header(header: str) -> (str, str):
             """splits header text into its course code and name components"""
@@ -63,7 +63,7 @@ class Course(db.Model):
             return course_code, course_name
 
         if not browser_src:
-            return self.status
+            return course.status
 
         soup = BeautifulSoup(browser_src, 'html.parser')
         table = soup.find('table', {'id': 'details_table'})
@@ -71,22 +71,22 @@ class Course(db.Model):
         if table:
             row = table.find('tbody').find('tr')
             header = soup.find("section", {"id": "details"}).find("h2")
-            self.abbr, self.title = __parse_header(header.text)
+            course.abbr, course.title = __parse_header(header.text)
             # unique = row.find('td', {'data-th': 'Unique'}).text
-            self.prof = row.find('td', {'data-th': 'Instructor'}).text
-            self.status = row.find('td', {'data-th': 'Status'}).text
+            course.prof = row.find('td', {'data-th': 'Instructor'}).text
+            course.status = row.find('td', {'data-th': 'Status'}).text
         else:
-            self.valid = False
+            course.valid = False
 
-        return self.status
+        return course.status
 
     @staticmethod
-    def __changes(course) -> dict:
+    def __changes(course, prev_status) -> dict:
         """Get a dict of changed courses with old and new statuses"""
         changed_course = {}
 
-        if course.prev_status != course.status:
-            changed_course[course.uid] = (course.abbr, course.prof, course.prev_status, course.status)
+        if prev_status != course.status:
+            changed_course[course.uid] = (course.abbr, course.prof, prev_status, course.status)
 
         if len(changed_course) > 0:
             d_print('{} that changed status'.format(changed_course))
@@ -120,13 +120,15 @@ class Course(db.Model):
         if not course.valid:
             return
 
-        course.prev_status = course.status
+        prev_status = course.status
+        prev_status = 'open'
         course.status = course.__update_course(course, Course.Monitor.get_course_page(course.uid))
-        if course.prev_status:
-            Course.__dispatch_emitters(Course.__changes(course))
+        print(course, "prev {}, curr {}\n".format(prev_status, course.status))
+        if prev_status:
+            Course.__dispatch_emitters(Course.__changes(course, prev_status))
 
             s_rank = statuses.index(course.status)
-            p_rank = statuses.index(course.prev_status)
+            p_rank = statuses.index(prev_status)
             if course.register and course.register != 'success' and course.valid and s_rank < 5 and s_rank < p_rank:
                 course.register = Course.Monitor.register(course.uid)
                 if course.register == 'fail':
