@@ -2,13 +2,13 @@ import json
 import os
 
 from dotenv import load_dotenv
-from flask import Flask, send_from_directory, Response, request, redirect, jsonify
+from flask import Flask, send_from_directory, Response, request, redirect
 from flask_login import LoginManager, login_required, login_user, current_user
 
 from server.course_monitor import Monitor, JobState, set_debug, Course
 from server.course_monitor.database import db
 from server.course_monitor.utils import \
-    add_course_job, remove_course, init_monitor, get_time, add_course, build_sem_code, valid_uid, load_courses
+    add_course_job, remove_course, init_monitor, get_time, add_course, build_sem_code, valid_uid
 from server.course_monitor.user import User
 
 API = '/api/v1'
@@ -30,8 +30,6 @@ with app.app_context():
 login_manager = LoginManager(app)
 login_manager.login_view = '/login'
 
-courses = {}  # someday, I will remove this also
-
 usr_name, passwd = os.getenv('EID'), os.getenv('UT_PASS')
 scheduler, emitters = init_monitor(os.getenv('SEM'),
                                    os.getenv('EID'),
@@ -39,9 +37,12 @@ scheduler, emitters = init_monitor(os.getenv('SEM'),
                                    DATABASE_URL,
                                    os.getenv('FLASK_ENV') != 'development')
 
+Course.App = app
+
 start_time, end_time = get_time(os.getenv('START')), get_time(os.getenv('END'))
 # users[usr_name] = User(usr_name, passwd)
 with app.app_context():
+    db.session.query(Course).delete()  # for config only
     user = db.session.query(User).filter_by(uid=usr_name).first()
     if not user:  # add default user (me!)
         user = User(usr_name, passwd)
@@ -96,7 +97,8 @@ def config():
                 else:
                     start_time, end_time = get_time(st), get_time(en)
                 updated |= True
-        except Exception:
+        except Exception as e:
+            print(e)
             Monitor.sid, wait_time, start_time, end_time = old  # restore everything
             return 'failed', 500
 
@@ -105,8 +107,8 @@ def config():
 
         scheduler.remove_all_jobs()
         # for course in db.session.query(Course).all(): # need to recast all courses...
-        for uid in courses:
-            add_course_job(courses[uid], (start_time, end_time, wait_time), jitter)
+        for course in db.session.query(Course).all():
+            add_course_job(course.uid, (start_time, end_time, wait_time), jitter)
 
     # if os.getenv('FLASK_ENV') == 'development':
     # scheduler.print_jobs()
@@ -122,7 +124,7 @@ def config():
 def get_courses():
     return Response(
         mimetype='application/json',
-        response=json.dumps([courses[c].serialize() for c in courses]))
+        response=json.dumps([Course.serialize(course) for course in db.session.query(Course).all()]))
 
 
 @app.route(API + '/courses/<uid>', methods=['GET'])
@@ -133,7 +135,7 @@ def get_course(uid: str):
 
     return Response(
         mimetype='application/json',
-        response=courses[uid].serialize())
+        response=Course.serialize(Course.get_course(uid)))
 
 
 @app.route(API + '/courses/<uid>', methods=['POST'])
@@ -142,11 +144,9 @@ def create_course(uid: str):
     if resp := invalid_resp(uid):
         return resp
 
-    course = add_course(uid, emitters, courses, db)
+    course = add_course(uid)
     if course:
-        add_course_job(course, (start_time, end_time, wait_time), jitter)
-    else:
-        course = courses[uid]
+        add_course_job(uid, (start_time, end_time, wait_time), jitter)
 
     if pause := request.values.get('pause'):
         if pause == 'true':
@@ -159,7 +159,7 @@ def create_course(uid: str):
         elif register == 'false':
             course.register = None
 
-    return course.serialize(), 201
+    return Course.serialize(course), 201
 
 
 @app.route(API + '/courses/<uid>', methods=['DELETE'])
@@ -167,8 +167,8 @@ def create_course(uid: str):
 def remove_course_id(uid: str):
     if resp := undetected_resp(uid):
         return resp
-    course = remove_course(uid, courses, db)
-    return course.serialize()
+    course = remove_course(uid)
+    return Course.serialize(course)
 
 
 @app.route(API + '/login_status', methods=['GET'])
@@ -196,7 +196,6 @@ def browser_login_action():
         user.cookies = Monitor.cookies
         db.session.commit()
 
-    courses.update(load_courses(emitters, db))
     return {'browser': Monitor.logged_in()}
 
 
