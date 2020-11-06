@@ -89,7 +89,7 @@ class Course(db.Model):
             changed_course[course.uid] = (course.abbr, course.prof, prev_status, course.status)
 
         if len(changed_course) > 0:
-            d_print('{} that changed status'.format(changed_course))
+            d_print('{} changed status'.format(changed_course))
         else:
             d_print('no change in course {}'.format(course.uid))
         return changed_course
@@ -121,9 +121,7 @@ class Course(db.Model):
             return
 
         prev_status = course.status
-        prev_status = 'open'
         course.status = course.__update_course(course, Course.Monitor.get_course_page(course.uid))
-        print(course, "prev {}, curr {}\n".format(prev_status, course.status))
         if prev_status:
             Course.__dispatch_emitters(Course.__changes(course, prev_status))
 

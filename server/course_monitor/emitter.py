@@ -27,8 +27,8 @@ class NotificationEmitter:
 
         return closed, opened
 
-    def __dispatch_emit(self, closed_classes: dict, opened_classes: dict):
-        pass
+    def dispatch_emit(self, closed_classes: dict, opened_classes: dict):
+        raise NotImplementedError('Dispatch emit not implemented')
 
     def simple_msg(self, msg: str):
         pass
@@ -38,12 +38,12 @@ class NotificationEmitter:
             return
 
         closed_classes, opened_classes = NotificationEmitter.__categorize_classes(classes)
-        self.__dispatch_emit(closed_classes, opened_classes)
+        self.dispatch_emit(closed_classes, opened_classes)
 
 
 class ConsoleEmitter(NotificationEmitter):
 
-    def __dispatch_emit(self, closed_classes: dict, opened_classes: dict):
+    def dispatch_emit(self, closed_classes: dict, opened_classes: dict):
 
         if len(closed_classes) > 0:
             print('Here are the classes that closed up')
@@ -129,7 +129,7 @@ class SlackEmitter(NotificationEmitter):
 
         return blocks
 
-    def __dispatch_emit(self, closed_classes: dict, opened_classes: dict):
+    def dispatch_emit(self, closed_classes: dict, opened_classes: dict):
         """sends message with closed and opened classes info via Slack client to channel specified in channel id"""
         if len(closed_classes) > 0 or len(opened_classes) > 0:
             return self.client.chat_postMessage(
