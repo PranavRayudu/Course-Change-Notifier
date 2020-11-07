@@ -145,20 +145,20 @@ def create_course(uid: str):
         return resp
 
     course = add_course(uid)
-    if course:
-        add_course_job(uid, (start_time, end_time, wait_time), jitter)
+    add_course_job(uid, (start_time, end_time, wait_time), jitter)
 
     if pause := request.values.get('pause'):
         if pause == 'true':
-            course.pause_job(scheduler)
+            Course.pause_job(course.uid, scheduler)
         elif pause == 'false':
-            course.resume_job(scheduler)
+            Course.resume_job(course.uid, scheduler)
     if register := request.values.get('register'):
         if register == 'true':
             course.register = 'register'
         elif register == 'false':
             course.register = None
 
+    db.session.commit()
     return Course.serialize(course), 201
 
 
