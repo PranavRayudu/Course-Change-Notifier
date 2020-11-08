@@ -114,23 +114,23 @@ def add_course_job(uid: str, times: tuple, jitter=0):
         if course.paused:
             Course.pause_job(uid, scheduler)
 
-    if start_time and end_time:
-        # start_date, end_date = get_today_times(start_time, end_time)
-        start_date, end_date = next_datetime(start_time), next_datetime(end_time)
-        if not scheduler.get_job(course_start_id):
-            scheduler.add_job(
-                add_course_job,
-                trigger='date',
-                args=(uid, times, jitter),
-                id=course_start_id,
-                run_date=start_date)
-        if added and not scheduler.get_job(course_end_id):
-            scheduler.add_job(
-                remove_course_job,
-                args=(uid,),
-                trigger='date',
-                id=course_end_id,
-                run_date=end_date)
+    # if start_time and end_time:
+    #     # start_date, end_date = get_today_times(start_time, end_time)
+    #     start_date, end_date = next_datetime(start_time), next_datetime(end_time)
+    #     if not scheduler.get_job(course_start_id):
+    #         scheduler.add_job(
+    #             add_course_job,
+    #             trigger='date',
+    #             args=(uid, times, jitter),
+    #             id=course_start_id,
+    #             run_date=start_date,)
+    #     if added and not scheduler.get_job(course_end_id):
+    #         scheduler.add_job(
+    #             remove_course_job,
+    #             args=(uid,),
+    #             trigger='date',
+    #             id=course_end_id,
+    #             run_date=end_date)
 
 
 def remove_all_courses():
